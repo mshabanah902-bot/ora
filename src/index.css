@@ -83,6 +83,18 @@
     color: #fff;
   }
 
+  .availability-available {
+    border-color: #16a34a;
+    background: #16a34a;
+    color: #fff;
+  }
+
+  .availability-unavailable {
+    border-color: #dc2626;
+    background: #dc2626;
+    color: #fff;
+  }
+
   @media (max-width: 640px) {
     h1 {
       text-align: center;
