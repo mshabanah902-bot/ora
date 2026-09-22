@@ -47,8 +47,14 @@ export default function App() {
   useEffect(() => { localStorage.setItem('ora-cart', JSON.stringify(cart)); }, [cart]);
   useEffect(() => { localStorage.setItem('ora-wishlist', JSON.stringify(wishlist)); }, [wishlist]);
   const addToCart = (product: Product, selectedColor: string, selectedSize: string) => {
-    const lineId = `${product.id}:${selectedColor}:${selectedSize}`;
     const selectedColorData = product.colors?.find((color) => color.name === selectedColor);
+    const selectedSizeData = product.sizes?.find((size) => size.name === selectedSize);
+    const colorAvailable = selectedColorData?.available ?? true;
+    const sizeAvailable = selectedColorData?.sizeAvailability?.[selectedSize]
+      ?? (colorAvailable && (selectedSizeData?.available ?? true));
+    if (!selectedColor || !selectedSize || !colorAvailable || !sizeAvailable) return;
+
+    const lineId = `${product.id}:${selectedColor}:${selectedSize}`;
     const selectedImage = selectedColorData?.image || product.image;
     setCart((items) => {
       const existing = items.find((item) => item.lineId === lineId);
