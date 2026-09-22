@@ -101,7 +101,7 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { produ
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="text-base font-bold">₪{product.price}</span>
-            <span className="text-xs text-charcoal-400 line-through">₪{product.originalPrice}</span>
+            {product.originalPrice > product.price && <span className="text-xs text-charcoal-400 line-through">₪{product.originalPrice}</span>}
           </div>
           <button 
             disabled={!canAddToCart} 
