@@ -15,8 +15,13 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { produ
   const { language, t } = useLanguage();
   const [color, setColor] = useState(product.images[0]);
   const sizes = getProductSizes(product);
-  const [size, setSize] = useState(sizes.find((item) => item.available)?.name || '');
   const colors = product.colors?.length ? product.colors : product.images.map((item) => ({ name: item.color, available: true, image: item.img }));
+  const sizesForColor = (selected = color.color) => {
+    const selectedColor = colors.find((item) => item.name === selected);
+    return sizes.map((item) => ({ ...item, available: selectedColor?.sizeAvailability?.[item.name] ?? (selectedColor?.available && item.available) }));
+  };
+  const [size, setSize] = useState(sizesForColor()[0]?.name || '');
+  const colorSizes = sizesForColor();
   return (
     <motion.div layout initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} className="group">
       <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-ora-100 mb-4">
@@ -30,8 +35,8 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { produ
         <div className="flex items-center justify-between mb-1"><h3 className="font-semibold text-sm">{product.name}</h3><span className="flex items-center gap-1 text-xs"><Star className="w-3 h-3 fill-amber-400 text-amber-400" />{product.rating}</span></div>
         <p className="text-xs text-charcoal-400 mb-2">{product.nameAr} - لون {color.color}</p>
         <div className="flex items-center justify-between gap-2"><div className="flex items-center gap-2"><span className="text-base font-bold">₪{product.price}</span><span className="text-xs text-charcoal-400 line-through">₪{product.originalPrice}</span></div><button disabled={!size || !colors.some((item) => item.available)} onClick={() => onAdd(product)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2E3220] px-4 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:bg-ora-700 hover:-translate-y-0.5 active:scale-95 whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"><ShoppingBag className="w-4 h-4" />{language === 'he' ? t('addToCart') : 'أضف للسلة'}</button></div>
-        <div className="mt-3"><span className="text-xs text-charcoal-500">{language === 'he' ? t('availableSizes') : 'النمر المتوفرة:'}</span><div className="flex flex-wrap gap-1.5 mt-1">{sizes.map((item) => <button key={item.name} disabled={!item.available} onClick={() => setSize(item.name)} className={`min-w-8 px-2 py-1 rounded-lg border text-xs transition-all ${size === item.name ? 'border-charcoal-900 bg-charcoal-900 text-white' : 'border-charcoal-200 bg-white'} disabled:opacity-35 disabled:line-through`} aria-label={`${language === 'he' ? t('size') : 'نمرة'} ${item.name}`}>{item.name}</button>)}</div></div>
-        <div className="flex gap-1.5 mt-3">{colors.map((item) => { const image = { color: item.name, img: item.image }; return <button key={item.name} disabled={!item.available} onClick={() => setColor(image)} className={`w-7 h-7 rounded-full border-2 transition-transform hover:scale-110 ${color.color === item.name ? 'border-charcoal-900 scale-110' : 'border-white'} disabled:opacity-30 disabled:grayscale`} style={{ backgroundColor: item.name === 'ابيض' ? '#f5f2ed' : item.name === 'اسود' ? '#111' : item.name === 'كحلي' ? '#1d2d4b' : item.name === 'زيتي' ? '#65705a' : '#a98a6a' }} aria-label={`لون ${item.name}`} />; })}</div>
+        <div className="mt-3"><span className="text-xs text-charcoal-500">{language === 'he' ? t('availableSizes') : 'النمر المتوفرة:'}</span><div className="flex flex-wrap gap-1.5 mt-1">{colorSizes.map((item) => <button key={item.name} disabled={!item.available} onClick={() => setSize(item.name)} className={`min-w-8 px-2 py-1 rounded-lg border text-xs transition-all ${size === item.name ? 'border-charcoal-900 bg-charcoal-900 text-white' : 'border-charcoal-200 bg-white'} disabled:opacity-35 disabled:line-through`} aria-label={`${language === 'he' ? t('size') : 'نمرة'} ${item.name}`}>{item.name}</button>)}</div></div>
+        <div className="flex gap-1.5 mt-3">{colors.map((item) => { const image = { color: item.name, img: item.image }; const colorAvailable = item.available && (!item.sizeAvailability || Object.values(item.sizeAvailability).some(Boolean)); return <button key={item.name} disabled={!colorAvailable} onClick={() => { setColor(image); setSize(sizesForColor(item.name).find((entry) => entry.available)?.name || ''); }} className={`w-7 h-7 rounded-full border-2 transition-transform hover:scale-110 ${color.color === item.name ? 'border-charcoal-900 scale-110' : 'border-white'} disabled:opacity-30 disabled:grayscale`} style={{ backgroundColor: item.name === 'ابيض' ? '#f5f2ed' : item.name === 'اسود' ? '#111' : item.name === 'كحلي' ? '#1d2d4b' : item.name === 'زيتي' ? '#65705a' : '#a98a6a' }} aria-label={`لون ${item.name}`} />; })}</div>
       </div>
     </motion.div>
   );

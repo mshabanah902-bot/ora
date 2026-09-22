@@ -12,7 +12,7 @@ export type Product = {
   image: string;
   images: { color: string; img: string }[];
   sizes: { name: string; available: boolean }[];
-  colors: { name: string; available: boolean; image: string }[];
+  colors: { name: string; available: boolean; image: string; sizeAvailability?: Record<string, boolean> }[];
 };
 
 export const defaultProducts: Product[] = [
