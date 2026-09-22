@@ -122,7 +122,20 @@ function ProductsTab({ draft, update, onDraftChange, onSave, readImages }: { dra
   });
   const addProduct = () => {
     if (!newProduct.name.trim() || !newProduct.nameAr.trim() || !newProduct.colors.some((color) => color.name.trim() && color.image)) return;
-    const product = { ...newProduct, id: nextId, image: newProduct.colors.find((color) => color.image)?.image || newProduct.image };
+    const colors = newProduct.colors
+      .filter((color) => color.name.trim() && color.image)
+      .map((color) => ({ ...color, name: color.name.trim(), images: color.images?.length ? color.images : [color.image] }));
+    const sizes = newProduct.sizes.filter((size) => size.name.trim());
+    const images = colors.flatMap((color) => color.images!.map((image) => ({ color: color.name, img: image })));
+    const product = {
+      ...newProduct,
+      id: nextId,
+      sizes,
+      colors,
+      images,
+      colorName: colors[0].name,
+      image: colors[0].image,
+    };
     const nextProducts = [...draft, product];
     onDraftChange(nextProducts);
     void onSave(nextProducts);

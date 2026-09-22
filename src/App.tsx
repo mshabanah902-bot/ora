@@ -37,7 +37,7 @@ export default function App() {
   }, []);
   const addToCart = (product: Product) => { setCart((items) => { const existing = items.find((item) => item.id === product.id); return existing ? items.map((item) => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item) : [...items, { ...product, quantity: 1 }]; }); };
   const changeQuantity = (id: number, delta: number) => setCart((items) => items.map((item) => item.id === id ? { ...item, quantity: item.quantity + delta } : item).filter((item) => item.quantity > 0));
-  const saveProducts = async (next: Product[]) => { await persistProducts(next); setProducts(next); };
+  const saveProducts = async (next: Product[]) => { setProducts(next); await persistProducts(next); };
   const saveSiteContent = async (next: SiteContent) => { const merged = mergeSiteContent(next); await persistSiteContent(merged); setSiteContent(merged); };
   const toggleWishlist = (product: Product, selectedColor: string, selectedSize: string) => setWishlist((current) => {
     const next = current.some((item) => item.id === product.id)
