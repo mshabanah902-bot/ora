@@ -1,0 +1,227 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'CustomArabic';
+  /* المسار يبدأ بشرطة مائلة ليقرأ مباشرة من جذر مجلد public عند النشر */
+  src: url('/alfont_com_Palestine-Regular.ttf') format('truetype');
+  unicode-range: U+0600-06FF, U+0750-077F, U+FB50-FDFF, U+FE70-FEFF;
+  font-display: swap;
+}
+:root {
+  --color-ora-50: #faf8f5;
+  --color-ora-100: #f0ebe3;
+  --color-ora-200: #e2d7c8;
+  --color-ora-300: #d0bfa7;
+  --color-ora-400: #bca385;
+  --color-ora-500: #a98a6a;
+  --color-ora-600: #96755a;
+  --color-ora-700: #7d604c;
+  --color-ora-800: #674f42;
+  --color-ora-900: #564239;
+  --color-ora-950: #2e211c;
+
+  --color-charcoal-50: #f6f6f7;
+  --color-charcoal-100: #e2e3e5;
+  --color-charcoal-200: #c4c6ca;
+  --color-charcoal-300: #9fa2a8;
+  --color-charcoal-400: #7b7f86;
+  --color-charcoal-500: #60646c;
+  --color-charcoal-600: #4c4f56;
+  --color-charcoal-700: #3f4147;
+  --color-charcoal-800: #36383c;
+  --color-charcoal-900: #1e1f22;
+  --color-charcoal-950: #111214;
+
+  /* 2. دمج خط فلسطين للعربي وخط Inter للإنجليزي معاً بالترتيب الصحيح */
+  --font-display: 'CustomArabic', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-body: 'CustomArabic', 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* إجبار الهاتف على قراءة خط فلسطين كأولوية قصوى */
+    font-family: var(--font-body);
+    font-stretch: normal;
+    letter-spacing: normal;
+    word-spacing: normal;
+    box-sizing: border-box;
+  }
+
+  h1, h2, h3, p, button, a, input, textarea, select {
+    line-height: 1.6;
+  }
+
+  h1, h2, h3 {
+    line-height: 1.25;
+  }
+
+  /* Keep the brand's elongated Arabic lettering readable without collapsing lines. */
+  h1 span {
+    display: block;
+    min-height: 1.5em;
+    transform-origin: right center;
+  }
+
+  body {
+    /* تمنع المتصفح على الهاتف من تكبير أو تمديد الخطوط تلقائياً */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 640px) {
+    h1 {
+      text-align: center;
+      font-size: 1.35rem;
+    }
+
+    h1 span {
+      transform-origin: center center;
+    }
+  }
+}
+
+body {
+  background: #faf8f5;
+  color: #1e1f22;
+  overflow-x: hidden;
+}
+
+img {
+  max-width: 100%;
+}
+
+  ::selection {
+    background: #2E3220;
+    color: white;
+  }
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .glass {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(46, 50, 32, 0.2);
+  }
+
+  .glass-dark {
+    background: rgba(30, 31, 34, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, #2e211c 0%, #a98a6a 50%, #7d604c 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-gold {
+    background: linear-gradient(135deg, #d0bfa7 0%, #a98a6a 50%, #7d604c 100%);
+  }
+
+  .gradient-hero {
+    background: linear-gradient(165deg, #faf8f5 0%, #f0ebe3 30%, #e2d7c8 70%, #d0bfa7 100%);
+  }
+
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shimmer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: shimmer 3s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+
+  .float-animation {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-12px); }
+  }
+
+  .pulse-glow {
+    animation: pulseGlow 3s ease-in-out infinite;
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 20px rgba(169, 138, 106, 0.2); }
+    50% { box-shadow: 0 0 40px rgba(169, 138, 106, 0.4); }
+  }
+
+  .line-draw {
+    background: linear-gradient(to right, #a98a6a, #a98a6a) no-repeat left bottom;
+    background-size: 0% 2px;
+    transition: background-size 0.4s ease;
+  }
+
+  .line-draw:hover {
+    background-size: 100% 2px;
+  }
+
+  .noise-bg {
+    position: relative;
+  }
+
+  .noise-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .field {
+    width: 100%;
+    border: 1px solid var(--color-charcoal-200);
+    border-radius: 0.75rem;
+    background: white;
+    padding: 0.75rem 0.9rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .field:focus {
+    border-color: var(--color-ora-600);
+    box-shadow: 0 0 0 3px rgba(150, 117, 90, 0.15);
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f0ebe3;
+}
+::-webkit-scrollbar-thumb {
+  background: #bca385;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a98a6a;
+}
