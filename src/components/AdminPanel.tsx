@@ -4,7 +4,7 @@ import { ClipboardList, Download, ImagePlus, LockKeyhole, Plus, Settings, Trash2
 import type { Product } from '../data/products';
 import type { SiteContent } from '../data/siteContent';
 import { loadOrders as loadOrdersFromSupabase } from '../lib/api';
-type OrderItem = { id: number; name: string; color: string; price: number; quantity: number };
+type OrderItem = { id: number; name: string; color: string; size?: string; price: number; quantity: number };
 type Order = {
   customer: { name: string; phone: string; address: string };
   region: string;
@@ -293,7 +293,7 @@ function OrdersTab({ orders, loading }: { orders: Order[]; loading: boolean }) {
       order.customer.phone,
       order.customer.address,
       order.region,
-      order.items.map((item) => `${item.name} - ${item.color} × ${item.quantity}`).join(' | '),
+      order.items.map((item) => `${item.name} - ${item.color}${item.size ? ` - ${item.size}` : ''} × ${item.quantity}`).join(' | '),
       `₪${order.total}`,
     ]);
 const csv = '\uFEFF' + [headers, ...rows].map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));

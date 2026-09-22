@@ -35,8 +35,18 @@ export default function App() {
     void loadProducts().then((data) => setProducts(data.length ? data : defaultProducts)).catch(() => undefined);
     void loadSiteContent().then((data) => setSiteContent(mergeSiteContent(data))).catch(() => undefined);
   }, []);
-  const addToCart = (product: Product) => { setCart((items) => { const existing = items.find((item) => item.id === product.id); return existing ? items.map((item) => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item) : [...items, { ...product, quantity: 1 }]; }); };
-  const changeQuantity = (id: number, delta: number) => setCart((items) => items.map((item) => item.id === id ? { ...item, quantity: item.quantity + delta } : item).filter((item) => item.quantity > 0));
+  const addToCart = (product: Product, selectedColor: string, selectedSize: string) => {
+    const lineId = `${product.id}:${selectedColor}:${selectedSize}`;
+    const selectedColorData = product.colors?.find((color) => color.name === selectedColor);
+    const selectedImage = selectedColorData?.image || product.image;
+    setCart((items) => {
+      const existing = items.find((item) => item.lineId === lineId);
+      return existing
+        ? items.map((item) => item.lineId === lineId ? { ...item, quantity: item.quantity + 1 } : item)
+        : [...items, { ...product, image: selectedImage, quantity: 1, selectedColor, selectedSize, lineId }];
+    });
+  };
+  const changeQuantity = (lineId: string, delta: number) => setCart((items) => items.map((item) => item.lineId === lineId ? { ...item, quantity: item.quantity + delta } : item).filter((item) => item.quantity > 0));
   const saveProducts = async (next: Product[]) => { setProducts(next); await persistProducts(next); };
   const saveSiteContent = async (next: SiteContent) => { const merged = mergeSiteContent(next); await persistSiteContent(merged); setSiteContent(merged); };
   const toggleWishlist = (product: Product, selectedColor: string, selectedSize: string) => setWishlist((current) => {
