@@ -13,6 +13,15 @@ import { loadProducts, loadSiteContent, saveProducts as persistProducts, saveSit
 import { defaultSiteContent, type SiteContent } from './data/siteContent';
 
 export type WishlistItem = Product & { selectedColor: string; selectedSize: string };
+function readStored<T>(key: string, fallback: T): T {
+  try {
+    const value = localStorage.getItem(key);
+    return value ? JSON.parse(value) as T : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 const mergeSiteContent = (value: Partial<SiteContent> | null | undefined): SiteContent => ({
   ...defaultSiteContent,
   ...value,
@@ -27,14 +36,16 @@ const mergeSiteContent = (value: Partial<SiteContent> | null | undefined): SiteC
 
 export default function App() {
   const [products, setProducts] = useState<Product[]>(defaultProducts);
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => readStored<CartItem[]>('ora-cart', []));
   const [cartOpen, setCartOpen] = useState(false);
-  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
+  const [wishlist, setWishlist] = useState<WishlistItem[]>(() => readStored<WishlistItem[]>('ora-wishlist', []));
   const [siteContent, setSiteContent] = useState<SiteContent>(defaultSiteContent);
   useEffect(() => {
     void loadProducts().then((data) => setProducts(data.length ? data : defaultProducts)).catch(() => undefined);
     void loadSiteContent().then((data) => setSiteContent(mergeSiteContent(data))).catch(() => undefined);
   }, []);
+  useEffect(() => { localStorage.setItem('ora-cart', JSON.stringify(cart)); }, [cart]);
+  useEffect(() => { localStorage.setItem('ora-wishlist', JSON.stringify(wishlist)); }, [wishlist]);
   const addToCart = (product: Product, selectedColor: string, selectedSize: string) => {
     const lineId = `${product.id}:${selectedColor}:${selectedSize}`;
     const selectedColorData = product.colors?.find((color) => color.name === selectedColor);
