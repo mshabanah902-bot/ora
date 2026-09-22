@@ -1,12 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Heart, ShoppingBag, Star } from 'lucide-react';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 import type { Product } from '../data/products';
 import type { WishlistItem } from '../App';
 import { useLanguage } from '../i18n';
-
-const categories = ['الكل', 'ATHER', 'NASAQ', 'SAHAB', 'WAQAR', 'OFUQ', 'TAYF'];
 
 const getColorHex = (name: string) => {
   const color = name.trim().toLocaleLowerCase();
@@ -127,7 +125,7 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { produ
           </div>
         </div>
 
-        {/* الألوان مع الحلقة الذهبية وعلامة X للون المخلص */}
+        {/* الألوان */}
         <div className="flex gap-1.5 mt-3">
           {colors.map((item: any) => { 
             const hasAnySizeAvailable = sizes.some((sizeItem: any) => 
@@ -162,9 +160,18 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { produ
 
 export default function ProductShowcase({ products, onAdd, wishlist, onToggleWishlist }: { products: Product[]; onAdd: (product: Product) => void; wishlist: WishlistItem[]; onToggleWishlist: (product: Product, color: string, size: string) => void }) {
   const [activeCategory, setActiveCategory] = useState('الكل');
+  
+  const categories = useMemo(() => {
+    const baseCategories = ['الكل', 'ATHER', 'NASAQ', 'SAHAB', 'WAQAR', 'OFUQ', 'TAYF'];
+    const dynamicCategories = (products || []).map((p: any) => p.category).filter(Boolean);
+    return Array.from(new Set([...baseCategories, ...dynamicCategories]));
+  }, [products]);
+
   const { ref, inView } = useScrollReveal(0.05);
   const { language, t } = useLanguage();
-  const visible = activeCategory === 'الكل' ? products : products.filter((product) => product.name === activeCategory);
+  
+  // الفلترة الصحيحة بناءً على حقل الـ category الخاص بالقطعة
+  const visible = activeCategory === 'الكل' ? products : products.filter((product) => product.category === activeCategory);
 
   return (
     <section id="products" ref={ref} className="py-20 sm:py-28 bg-white relative">

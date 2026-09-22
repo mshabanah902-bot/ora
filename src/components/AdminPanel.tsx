@@ -191,8 +191,14 @@ function ProductsTab({ draft, update, onDraftChange, onSave, readImages }: { dra
         </div>)}</div>
         <button type="button" onClick={() => updateNewColors([...newProduct.colors, { name: '', available: true, image: '', sizeAvailability: Object.fromEntries(newProduct.sizes.map((size) => [size.name, true])) }])} className="mt-2 text-xs text-ora-700">+ إضافة لون</button>
       </div>
-      <button type="button" onClick={addProduct} disabled={!newProduct.name.trim() || !newProduct.nameAr.trim() || !newProduct.colors.some((color) => color.name.trim() && color.image)} className="w-full mt-4 py-3 rounded-xl bg-ora-700 text-white font-bold disabled:opacity-40 disabled:cursor-not-allowed">إضافة المنتج للقائمة</button>
-    </div>}
+<button 
+  type="button" 
+  onClick={addProduct} 
+  disabled={!newProduct.name.trim() || !newProduct.nameAr.trim() || !newProduct.colors.some((color) => color.name.trim() && color.image)} 
+  className="w-full mt-4 py-3 rounded-xl bg-[#2E3220] text-white font-bold shadow-md hover:bg-black transition-colors disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+>
+  إضافة المنتج للقائمة
+</button>    </div>}
     {productSection === 'existing' && <div className="space-y-4">{draft.map((product, index) => {
       const sizes = product.sizes?.length ? product.sizes : [{ name: 'One Size', available: true }];
       const colors = product.colors?.length ? product.colors : product.images.map((item) => ({ name: item.color, available: true, image: item.img, sizeAvailability: Object.fromEntries(sizes.map((size) => [size.name, size.available])) }));
