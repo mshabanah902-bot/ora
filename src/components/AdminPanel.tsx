@@ -3,9 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ClipboardList, Download, ImagePlus, LockKeyhole, Plus, Settings, Trash2, X } from 'lucide-react';
 import type { Product } from '../data/products';
 import type { SiteContent } from '../data/siteContent';
-import { apiUrl } from '../lib/api';
-
-type OrderItem = { id: number; name: string; color: string; price: number; quantity: number };
+import { apiUrl } from '../lib/api';type OrderItem = { id: number; name: string; color: string; price: number; quantity: number };
 type Order = {
   customer: { name: string; phone: string; address: string };
   region: string;
@@ -45,40 +43,52 @@ export default function AdminPanel({ products, onSave, siteContent, onSaveSiteCo
     } finally {
       setOrdersLoading(false);
     }
-
-    function readImages(files: FileList | null, onRead: (images: string[]) => void) {
-      if (!files?.length) return;
-      Promise.all(Array.from(files).map((file) => new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      }))).then(onRead).catch(() => undefined);
-    }
   };
 
-  const save = async () => {
+  // تعريف دالة قراءة الصور بشكل مستقل وصحيح
+  const readImages = (files: FileList | null, onRead: (images: string[]) => void) => {
+    if (!files?.length) return;
+    Promise.all(Array.from(files).map((file) => new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    }))).then(onRead).catch(() => undefined);
+  };
+
+const save = async () => {
     onSave(draft);
     try {
-      await fetch(apiUrl('/api/products'), {
+      const response = await fetch(apiUrl('/api/products'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-admin-password': 'ora123' },
         body: JSON.stringify(draft),
       });
+      if (!response.ok) {
+        localStorage.setItem('ora-products', JSON.stringify(draft));
+      }
     } catch {
       localStorage.setItem('ora-products', JSON.stringify(draft));
     }
     setOpen(false);
   };
+
   const saveContent = async () => {
     onSaveSiteContent(contentDraft);
     try {
-      await fetch(apiUrl('/api/settings'), { method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-admin-password': 'ora123' }, body: JSON.stringify(contentDraft) });
-    } catch { localStorage.setItem('ora-site-content', JSON.stringify(contentDraft)); }
+      const response = await fetch(apiUrl('/api/settings'), { 
+        method: 'PUT', 
+        headers: { 'Content-Type': 'application/json', 'x-admin-password': 'ora123' }, 
+        body: JSON.stringify(contentDraft) 
+      });
+      if (!response.ok) {
+        localStorage.setItem('ora-site-content', JSON.stringify(contentDraft));
+      }
+    } catch { 
+      localStorage.setItem('ora-site-content', JSON.stringify(contentDraft)); 
+    }
     setOpen(false);
-  };
-
-  return (
+  };  return (
     <>
       <button onClick={() => setOpen(true)} className="fixed bottom-5 left-5 z-40 w-12 h-12 rounded-full bg-[#2E3220] text-white shadow-xl flex items-center justify-center hover:scale-110 transition-transform" aria-label="لوحة الإدارة">
         <Settings size={19} />
@@ -105,7 +115,7 @@ export default function AdminPanel({ products, onSave, siteContent, onSaveSiteCo
                     <button onClick={() => { setTab('orders'); void loadOrders(); }} className={`py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${tab === 'orders' ? 'bg-[#2E3220] text-white' : 'bg-white'}`}><ClipboardList size={17} /> الطلبات</button>
                     <button onClick={() => setTab('settings')} className={`py-3 rounded-xl font-semibold transition-all ${tab === 'settings' ? 'bg-[#2E3220] text-white' : 'bg-white'}`}>المحتوى</button>
                   </div>
-                  {tab === 'products' ? <ProductsTab draft={draft} update={update} onDraftChange={setDraft} onSave={save} /> : tab === 'orders' ? <OrdersTab orders={orders} loading={ordersLoading} /> : <ContentTab draft={contentDraft} update={setContentDraft} onSave={saveContent} />}
+                  {tab === 'products' ? <ProductsTab draft={draft} update={update} onDraftChange={setDraft} onSave={save} readImages={readImages} /> : tab === 'orders' ? <OrdersTab orders={orders} loading={ordersLoading} /> : <ContentTab draft={contentDraft} update={setContentDraft} onSave={saveContent} />}
                 </>
               )}
             </motion.aside>
@@ -120,7 +130,7 @@ export default function AdminPanel({ products, onSave, siteContent, onSaveSiteCo
   }
 }
 
-function ProductsTab({ draft, update, onDraftChange, onSave }: { draft: Product[]; update: (index: number, change: Partial<Product>) => void; onDraftChange: Dispatch<SetStateAction<Product[]>>; onSave: () => void }) {
+function ProductsTab({ draft, update, onDraftChange, onSave, readImages }: { draft: Product[]; update: (index: number, change: Partial<Product>) => void; onDraftChange: Dispatch<SetStateAction<Product[]>>; onSave: () => void; readImages: (files: FileList | null, onRead: (images: string[]) => void) => void }) {
   const [newProduct, setNewProduct] = useState<Product>(() => createEmptyProduct(1));
   const [productSection, setProductSection] = useState<'add' | 'existing'>('add');
   const nextId = useMemo(() => draft.reduce((highest, product) => Math.max(highest, product.id), 0) + 1, [draft]);
@@ -287,8 +297,7 @@ function OrdersTab({ orders, loading }: { orders: Order[]; loading: boolean }) {
       order.items.map((item) => `${item.name} - ${item.color} × ${item.quantity}`).join(' | '),
       `₪${order.total}`,
     ]);
-    const csv = '\uFEFF' + [headers, ...rows].map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\n');
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+const csv = '\uFEFF' + [headers, ...rows].map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a'); link.href = url; link.download = `ora-orders-${month || day || 'all'}.csv`; link.click(); URL.revokeObjectURL(url);
   };
 
