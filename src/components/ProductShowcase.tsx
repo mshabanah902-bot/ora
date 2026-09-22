@@ -61,6 +61,9 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { produ
   }, [colorImages.length, selectedColor]);
 
   const colorImage = colorImages[imageIndex] || product.image;
+  const discountPercentage = product.originalPrice > product.price
+    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    : 0;
 
   const sizesForColor = (selected = selectedColor) => {
     const selectedColorObj = colors.find((item: any) => item.name === selected);
@@ -102,6 +105,7 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { produ
           <div className="flex items-center gap-2">
             <span className="text-base font-bold">₪{product.price}</span>
             {product.originalPrice > product.price && <span className="text-xs text-charcoal-400 line-through">₪{product.originalPrice}</span>}
+            {discountPercentage > 0 && <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">خصم {discountPercentage}%</span>}
           </div>
           <button 
             disabled={!canAddToCart} 
