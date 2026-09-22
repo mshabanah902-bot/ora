@@ -5,6 +5,7 @@ import { useScrollReveal } from '../hooks/useScrollReveal';
 import type { Product } from '../data/products';
 import type { WishlistItem } from '../App';
 import { useLanguage } from '../i18n';
+import { supabase } from '../lib/supabase'; // استيراد سوبابيس المباشر
 
 const getColorHex = (name: string) => {
   const color = name.trim().toLocaleLowerCase();
@@ -35,7 +36,7 @@ const getProductSizes = (product: Product) => product.sizes?.length
   ? product.sizes
   : [{ name: 'One Size', available: true }];
 
-function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { product: Product; index: number; onAdd: (product: Product) => void; liked: boolean; onToggleWishlist: (product: Product, color: string, size: string) => void }) {
+function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { product: Product; index: number; onAdd: (product: Product, color: string, size: string) => void; liked: boolean; onToggleWishlist: (product: Product, color: string, size: string) => void }) {
   const { language, t } = useLanguage();
   const sizes = getProductSizes(product);
   
@@ -74,6 +75,11 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { produ
   const colorSizes = sizesForColor();
   const productAvailable = Boolean(activeColor?.available && colorSizes.some((item) => item.available));
 
+  // تحقق صارم من توفر اللون والنمرة المحددين
+  const isSelectedColorAvailable = Boolean(activeColor?.available);
+  const isSelectedSizeAvailable = Boolean(colorSizes.find((item) => item.name === size)?.available);
+  const canAddToCart = Boolean(size && productAvailable && isSelectedColorAvailable && isSelectedSizeAvailable);
+
   return (
     <motion.div layout initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} className="group">
       <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-ora-100 mb-4">
@@ -99,7 +105,11 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { produ
             <span className="text-base font-bold">₪{product.price}</span>
             <span className="text-xs text-charcoal-400 line-through">₪{product.originalPrice}</span>
           </div>
-          <button disabled={!size || !colors.some((item: any) => item.available)} onClick={() => onAdd(product)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2E3220] px-4 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:bg-ora-700 hover:-translate-y-0.5 active:scale-95 whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed">
+          <button 
+            disabled={!canAddToCart} 
+            onClick={() => onAdd(product, selectedColor, size)} 
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2E3220] px-4 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:bg-ora-700 hover:-translate-y-0.5 active:scale-95 whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
+          >
             <ShoppingBag className="w-4 h-4" />{language === 'he' ? t('addToCart') : 'أضف للسلة'}
           </button>
         </div>
@@ -158,20 +168,38 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { produ
   );
 }
 
-export default function ProductShowcase({ products, onAdd, wishlist, onToggleWishlist }: { products: Product[]; onAdd: (product: Product) => void; wishlist: WishlistItem[]; onToggleWishlist: (product: Product, color: string, size: string) => void }) {
+export default function ProductShowcase({ products: initialProducts, onAdd, wishlist, onToggleWishlist }: { products: Product[]; onAdd: (product: Product, color: string, size: string) => void; wishlist: WishlistItem[]; onToggleWishlist: (product: Product, color: string, size: string) => void }) {
   const [activeCategory, setActiveCategory] = useState('الكل');
-  
+  const [cloudProducts, setCloudProducts] = useState<Product[]>(initialProducts);
+
+useEffect(() => {
+    async function fetchProductsFromSupabase() {
+      try {
+        const { data } = await supabase
+          .from('store_settings')
+          .select('value')
+          .eq('key', 'products')
+          .single();
+
+        if (data && data.value && Array.isArray(data.value)) {
+          setCloudProducts(data.value);
+        }
+      } catch {
+        // تم التعامل مع الخطأ صامتاً لضمان استقرار العرض
+      }
+    }
+    fetchProductsFromSupabase();
+  }, []);
   const categories = useMemo(() => {
     const baseCategories = ['الكل', 'ATHER', 'NASAQ', 'SAHAB', 'WAQAR', 'OFUQ', 'TAYF'];
-    const dynamicCategories = (products || []).map((p: any) => p.category).filter(Boolean);
+    const dynamicCategories = (cloudProducts || []).map((p: any) => p.category).filter(Boolean);
     return Array.from(new Set([...baseCategories, ...dynamicCategories]));
-  }, [products]);
+  }, [cloudProducts]);
 
   const { ref, inView } = useScrollReveal(0.05);
   const { language, t } = useLanguage();
   
-  // الفلترة الصحيحة بناءً على حقل الـ category الخاص بالقطعة
-  const visible = activeCategory === 'الكل' ? products : products.filter((product) => product.category === activeCategory);
+  const visible = activeCategory === 'الكل' ? cloudProducts : cloudProducts.filter((product) => product.category === activeCategory);
 
   return (
     <section id="products" ref={ref} className="py-20 sm:py-28 bg-white relative">
@@ -192,7 +220,7 @@ export default function ProductShowcase({ products, onAdd, wishlist, onToggleWis
         <AnimatePresence mode="wait">
           <motion.div key={activeCategory} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10">
             {visible.map((product, index) => (
-              <ProductCard key={product.id} product={product} index={index} onAdd={onAdd} liked={wishlist.some((item) => item.id === product.id)} onToggleWishlist={onToggleWishlist} />
+              <ProductCard key={product.id || index} product={product} index={index} onAdd={onAdd} liked={wishlist.some((item) => item.id === product.id)} onToggleWishlist={onToggleWishlist} />
             ))}
           </motion.div>
         </AnimatePresence>
