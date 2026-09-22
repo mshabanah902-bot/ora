@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ClipboardList, Download, ImagePlus, LockKeyhole, Settings, X } from 'lucide-react';
+import { ClipboardList, Download, ImagePlus, LockKeyhole, Plus, Settings, Trash2, X } from 'lucide-react';
 import type { Product } from '../data/products';
 import type { SiteContent } from '../data/siteContent';
 import { apiUrl } from '../lib/api';
@@ -95,7 +95,7 @@ export default function AdminPanel({ products, onSave, siteContent, onSaveSiteCo
                     <button onClick={() => { setTab('orders'); void loadOrders(); }} className={`py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${tab === 'orders' ? 'bg-[#2E3220] text-white' : 'bg-white'}`}><ClipboardList size={17} /> الطلبات</button>
                     <button onClick={() => setTab('settings')} className={`py-3 rounded-xl font-semibold transition-all ${tab === 'settings' ? 'bg-[#2E3220] text-white' : 'bg-white'}`}>المحتوى</button>
                   </div>
-                  {tab === 'products' ? <ProductsTab draft={draft} update={update} onSave={save} /> : tab === 'orders' ? <OrdersTab orders={orders} loading={ordersLoading} /> : <ContentTab draft={contentDraft} update={setContentDraft} onSave={saveContent} />}
+                  {tab === 'products' ? <ProductsTab draft={draft} update={update} onDraftChange={setDraft} onSave={save} /> : tab === 'orders' ? <OrdersTab orders={orders} loading={ordersLoading} /> : <ContentTab draft={contentDraft} update={setContentDraft} onSave={saveContent} />}
                 </>
               )}
             </motion.aside>
@@ -110,8 +110,61 @@ export default function AdminPanel({ products, onSave, siteContent, onSaveSiteCo
   }
 }
 
-function ProductsTab({ draft, update, onSave }: { draft: Product[]; update: (index: number, change: Partial<Product>) => void; onSave: () => void }) {
+function ProductsTab({ draft, update, onDraftChange, onSave }: { draft: Product[]; update: (index: number, change: Partial<Product>) => void; onDraftChange: Dispatch<SetStateAction<Product[]>>; onSave: () => void }) {
+  const [newProduct, setNewProduct] = useState<Product>(() => createEmptyProduct(1));
+  const nextId = useMemo(() => draft.reduce((highest, product) => Math.max(highest, product.id), 0) + 1, [draft]);
+
+  const updateNewProduct = (change: Partial<Product>) => setNewProduct((current) => ({ ...current, ...change }));
+  const updateNewSizes = (sizes: Product['sizes']) => updateNewProduct({ sizes });
+  const updateNewColors = (colors: Product['colors']) => updateNewProduct({
+    colors,
+    images: colors.filter((color) => color.image).map((color) => ({ color: color.name, img: color.image })),
+    image: colors.find((color) => color.image)?.image || newProduct.image,
+  });
+  const addProduct = () => {
+    if (!newProduct.name.trim() || !newProduct.nameAr.trim() || !newProduct.colors.some((color) => color.name.trim() && color.image)) return;
+    const product = { ...newProduct, id: nextId, image: newProduct.colors.find((color) => color.image)?.image || newProduct.image };
+    onDraftChange((current) => [...current, product]);
+    setNewProduct(createEmptyProduct(nextId + 1));
+  };
+
   return <>
+    <div className="bg-ora-100 rounded-2xl p-4 shadow-sm border border-ora-200">
+      <div className="flex items-center gap-2 mb-1"><Plus size={19} className="text-ora-700" /><h3 className="font-bold text-lg">إضافة منتج جديد</h3></div>
+      <p className="text-xs text-charcoal-500 mb-4">أضف المنتج هنا بشكل مستقل، ثم اضغط حفظ المنتجات بعد الانتهاء.</p>
+      <div className="grid grid-cols-2 gap-2">
+        <input className="field" value={newProduct.name} onChange={(e) => updateNewProduct({ name: e.target.value })} placeholder="اسم المنتج" />
+        <input className="field" value={newProduct.nameAr} onChange={(e) => updateNewProduct({ nameAr: e.target.value })} placeholder="الاسم بالعربي" />
+        <input className="field" type="number" value={newProduct.price || ''} onChange={(e) => updateNewProduct({ price: Number(e.target.value) })} placeholder="السعر" />
+        <input className="field" type="number" value={newProduct.originalPrice || ''} onChange={(e) => updateNewProduct({ originalPrice: Number(e.target.value) })} placeholder="السعر قبل الخصم" />
+        <input className="field" value={newProduct.category} onChange={(e) => updateNewProduct({ category: e.target.value })} placeholder="الصنف" />
+        <input className="field" value={newProduct.badge} onChange={(e) => updateNewProduct({ badge: e.target.value })} placeholder="شارة المنتج (اختياري)" />
+      </div>
+      <div className="mt-4 border-t border-ora-200 pt-3">
+        <p className="font-bold text-sm mb-2">المقاسات والنمر</p>
+        <div className="space-y-2">{newProduct.sizes.map((size, sizeIndex) => <div key={`new-size-${sizeIndex}`} className="flex gap-2 items-center">
+          <input className="field" value={size.name} onChange={(e) => updateNewSizes(newProduct.sizes.map((item, index) => index === sizeIndex ? { ...item, name: e.target.value } : item))} placeholder="مثال: M أو 38" />
+          <button type="button" onClick={() => updateNewSizes(newProduct.sizes.map((item, index) => index === sizeIndex ? { ...item, available: !item.available } : item))} className={`px-3 py-2 rounded-lg text-xs whitespace-nowrap ${size.available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{size.available ? 'متوفر' : 'غير متوفر'}</button>
+          <button type="button" aria-label="حذف النمرة" onClick={() => updateNewSizes(newProduct.sizes.filter((_, index) => index !== sizeIndex))} className="p-2 text-red-500"><Trash2 size={15} /></button>
+        </div>)}</div>
+        <button type="button" onClick={() => updateNewSizes([...newProduct.sizes, { name: '', available: true }])} className="mt-2 text-xs text-ora-700">+ إضافة نمرة</button>
+      </div>
+      <div className="mt-4 border-t border-ora-200 pt-3">
+        <p className="font-bold text-sm mb-2">الألوان — صورة مستقلة لكل لون</p>
+        <div className="space-y-3">{newProduct.colors.map((color, colorIndex) => <div key={`new-color-${colorIndex}`} className="rounded-xl bg-white p-2">
+          <div className="flex gap-2 items-center">
+            <input className="field" value={color.name} onChange={(e) => updateNewColors(newProduct.colors.map((item, index) => index === colorIndex ? { ...item, name: e.target.value } : item))} placeholder="اسم اللون" />
+            <button type="button" aria-label="حذف اللون" onClick={() => updateNewColors(newProduct.colors.filter((_, index) => index !== colorIndex))} className="p-2 text-red-500"><Trash2 size={15} /></button>
+          </div>
+          <label className="mt-2 flex items-center gap-2 text-xs text-charcoal-500 cursor-pointer"><ImagePlus size={16} /> رفع صورة هذا اللون
+            <input type="file" accept="image/*" className="hidden" onChange={(e) => readImage(e.target.files?.[0], (image) => updateNewColors(newProduct.colors.map((item, index) => index === colorIndex ? { ...item, image } : item)))} />
+          </label>
+          {color.image && <img src={color.image} alt={color.name || 'صورة اللون'} className="mt-2 w-14 h-16 rounded-lg object-cover" />}
+        </div>)}</div>
+        <button type="button" onClick={() => updateNewColors([...newProduct.colors, { name: '', available: true, image: '', sizeAvailability: Object.fromEntries(newProduct.sizes.map((size) => [size.name, true])) }])} className="mt-2 text-xs text-ora-700">+ إضافة لون</button>
+      </div>
+      <button type="button" onClick={addProduct} disabled={!newProduct.name.trim() || !newProduct.nameAr.trim() || !newProduct.colors.some((color) => color.name.trim() && color.image)} className="w-full mt-4 py-3 rounded-xl bg-ora-700 text-white font-bold disabled:opacity-40 disabled:cursor-not-allowed">إضافة المنتج للقائمة</button>
+    </div>
     <div className="space-y-4">{draft.map((product, index) => {
       const sizes = product.sizes?.length ? product.sizes : [{ name: 'One Size', available: true }];
       const colors = product.colors?.length ? product.colors : product.images.map((item) => ({ name: item.color, available: true, image: item.img, sizeAvailability: Object.fromEntries(sizes.map((size) => [size.name, size.available])) }));
@@ -126,6 +179,25 @@ function ProductsTab({ draft, update, onSave }: { draft: Product[]; update: (ind
     })}</div>
     <button onClick={onSave} className="w-full mt-6 py-4 rounded-xl bg-[#2E3220] text-white font-bold">حفظ تعديلات المنتجات</button>
   </>;
+}
+
+function createEmptyProduct(id: number): Product {
+  return {
+    id,
+    name: '',
+    nameAr: '',
+    category: 'طقم',
+    colorName: '',
+    price: 0,
+    originalPrice: 0,
+    rating: 5,
+    reviews: 0,
+    badge: 'جديد',
+    image: '',
+    images: [],
+    sizes: [{ name: '', available: true }],
+    colors: [{ name: '', available: true, image: '' }],
+  };
 }
 
 function readImage(file: File | undefined, onRead: (image: string) => void) {
