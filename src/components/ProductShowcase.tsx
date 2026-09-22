@@ -7,6 +7,7 @@ import type { WishlistItem } from '../App';
 import { useLanguage } from '../i18n';
 
 const categories = ['الكل', 'ATHER', 'NASAQ', 'SAHAB', 'WAQAR', 'OFUQ', 'TAYF'];
+
 const getColorHex = (name: string) => {
   const color = name.trim().toLocaleLowerCase();
   const colors: Record<string, string> = {
@@ -31,6 +32,7 @@ const getColorHex = (name: string) => {
   };
   return colors[color] || '#a98a6a';
 };
+
 const getProductSizes = (product: Product) => product.sizes?.length
   ? product.sizes
   : [{ name: 'One Size', available: true }];
@@ -38,45 +40,116 @@ const getProductSizes = (product: Product) => product.sizes?.length
 function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { product: Product; index: number; onAdd: (product: Product) => void; liked: boolean; onToggleWishlist: (product: Product, color: string, size: string) => void }) {
   const { language, t } = useLanguage();
   const sizes = getProductSizes(product);
-  const colors = product.colors?.length ? product.colors : product.images.map((item) => ({ name: item.color, available: true, image: item.img }));
+  
+  // تصحيح توافق الأنواع للألوان والصور
+  const rawColors = (product as any).colors;
+  const colors = rawColors?.length ? rawColors : product.images.map((item: any) => ({ name: item.color, available: true, image: item.img }));
+  
   const [selectedColor, setSelectedColor] = useState(colors[0]?.name || '');
-  const activeColor = colors.find((item) => item.name === selectedColor) || colors[0];
+  const activeColor = colors.find((item: any) => item.name === selectedColor) || colors[0];
+  
   const colorImages = activeColor?.images?.length
     ? activeColor.images
     : activeColor?.image
       ? [activeColor.image]
-      : product.images.filter((item) => item.color === selectedColor).map((item) => item.img);
+      : product.images.filter((item: any) => item.color === selectedColor).map((item: any) => item.img);
+
   const [imageIndex, setImageIndex] = useState(0);
   useEffect(() => setImageIndex(0), [selectedColor]);
+  
   useEffect(() => {
     if (colorImages.length < 2) return;
     const timer = window.setInterval(() => setImageIndex((current) => (current + 1) % colorImages.length), 2800);
     return () => window.clearInterval(timer);
   }, [colorImages.length, selectedColor]);
+
   const colorImage = colorImages[imageIndex] || product.image;
+
   const sizesForColor = (selected = selectedColor) => {
-    const selectedColor = colors.find((item) => item.name === selected);
-    return sizes.map((item) => ({ ...item, available: selectedColor?.sizeAvailability?.[item.name] ?? (selectedColor?.available && item.available) }));
+    const selectedColorObj = colors.find((item: any) => item.name === selected);
+    return sizes.map((item) => ({
+      ...item,
+      available: selectedColorObj?.sizeAvailability?.[item.name] ?? (selectedColorObj?.available && item.available)
+    }));
   };
+
   const [size, setSize] = useState(sizesForColor()[0]?.name || '');
   const colorSizes = sizesForColor();
   const productAvailable = Boolean(activeColor?.available && colorSizes.some((item) => item.available));
+
   return (
     <motion.div layout initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} className="group">
       <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-ora-100 mb-4">
         <img src={colorImage} alt={`${product.name} - ${activeColor?.name || ''}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
         <span className="absolute top-3 left-3 px-3 py-1 bg-white/90 text-[10px] font-bold rounded-full">{product.badge}</span>
-        <span className={`absolute bottom-3 left-3 px-3 py-1 text-[10px] font-bold rounded-full ${productAvailable ? 'availability-available' : 'availability-unavailable'}`}>{productAvailable ? 'متوفر' : 'غير متوفر'}</span>
+        <span className={`absolute bottom-3 left-3 px-3 py-1 text-[10px] font-bold rounded-full ${productAvailable ? 'availability-available' : 'availability-unavailable'}`}>
+          {productAvailable ? 'متوفر' : 'غير متوفر'}
+        </span>
         <button onClick={() => onToggleWishlist(product, selectedColor, size)} className="absolute top-3 right-3 w-10 h-10 rounded-full bg-white/95 shadow-md flex items-center justify-center transition-all hover:scale-110" aria-label={liked ? 'إزالة من المفضلة' : 'إضافة للمفضلة'}>
           <Heart className={`w-4 h-4 ${liked ? 'fill-red-500 text-red-500' : ''}`} />
         </button>
       </div>
+
       <div className="px-1">
-        <div className="flex items-center justify-between mb-1"><h3 className="font-semibold text-sm">{product.name}</h3><span className="flex items-center gap-1 text-xs"><Star className="w-3 h-3 fill-amber-400 text-amber-400" />{product.rating}</span></div>
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="font-semibold text-sm">{product.name}</h3>
+          <span className="flex items-center gap-1 text-xs"><Star className="w-3 h-3 fill-amber-400 text-amber-400" />{product.rating}</span>
+        </div>
         <p className="text-xs text-charcoal-400 mb-2">{product.nameAr} - لون {activeColor?.name || ''}</p>
-        <div className="flex items-center justify-between gap-2"><div className="flex items-center gap-2"><span className="text-base font-bold">₪{product.price}</span><span className="text-xs text-charcoal-400 line-through">₪{product.originalPrice}</span></div><button disabled={!size || !colors.some((item) => item.available)} onClick={() => onAdd(product)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2E3220] px-4 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:bg-ora-700 hover:-translate-y-0.5 active:scale-95 whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"><ShoppingBag className="w-4 h-4" />{language === 'he' ? t('addToCart') : 'أضف للسلة'}</button></div>
-        <div className="mt-3"><span className="text-xs text-charcoal-500">{language === 'he' ? t('availableSizes') : 'النمر المتوفرة:'}</span><div className="flex flex-wrap gap-1.5 mt-1">{colorSizes.map((item) => <button key={item.name} disabled={!item.available} onClick={() => setSize(item.name)} className={`relative size-option min-w-8 px-2 py-1 rounded-lg text-xs font-semibold transition-all ${size === item.name ? 'size-option-selected' : ''} disabled:opacity-60`} aria-label={`${language === 'he' ? t('size') : 'نمرة'} ${item.name}`}><span className={item.available ? '' : 'line-through'}>{item.name}</span>{!item.available && <span className="absolute -top-2 -right-1 w-4 h-4 rounded-full bg-red-600 text-white text-xs leading-4">×</span>}</button>)}</div></div>
-        <div className="flex gap-1.5 mt-3">{colors.map((item) => { const colorAvailable = item.available && (!item.sizeAvailability || Object.values(item.sizeAvailability).some(Boolean)); const selected = selectedColor === item.name; return <button key={item.name} disabled={!colorAvailable} onClick={() => { setSelectedColor(item.name); setSize(sizesForColor(item.name).find((entry) => entry.available)?.name || ''); }} className={`w-7 h-7 rounded-full border-2 transition-transform hover:scale-110 ${selected ? 'border-ora-600 scale-110' : 'border-white'} disabled:opacity-30 disabled:grayscale`} style={{ backgroundColor: selected ? '#a98a6a' : getColorHex(item.name) }} aria-label={`لون ${item.name}`} title={item.name} />; })}</div>
+        
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-base font-bold">₪{product.price}</span>
+            <span className="text-xs text-charcoal-400 line-through">₪{product.originalPrice}</span>
+          </div>
+          <button disabled={!size || !colors.some((item: any) => item.available)} onClick={() => onAdd(product)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2E3220] px-4 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:bg-ora-700 hover:-translate-y-0.5 active:scale-95 whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed">
+            <ShoppingBag className="w-4 h-4" />{language === 'he' ? t('addToCart') : 'أضف للسلة'}
+          </button>
+        </div>
+
+        {/* النمر والمقاسات */}
+        <div className="mt-3">
+          <span className="text-xs text-charcoal-500">{language === 'he' ? t('availableSizes') : 'النمر المتوفرة:'}</span>
+          <div className="flex flex-wrap gap-1.5 mt-1">
+            {colorSizes.map((item) => (
+              <button 
+                key={item.name} 
+                disabled={!item.available} 
+                onClick={() => setSize(item.name)} 
+                className={`relative size-option min-w-8 px-2 py-1 rounded-lg text-xs font-semibold transition-all ${size === item.name && item.available ? 'bg-ora-200 border border-ora-600' : 'bg-gray-100'} disabled:opacity-60`} 
+                aria-label={`${language === 'he' ? t('size') : 'نمرة'} ${item.name}`}
+              >
+                <span className={item.available ? '' : 'line-through text-gray-400'}>{item.name}</span>
+                {!item.available && (
+                  <span className="absolute -top-1.5 -right-1 w-4 h-4 rounded-full bg-red-600 text-white text-[10px] flex items-center justify-center leading-none">×</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* الألوان مع الحلقة الذهبية الثابتة عند الاختيار */}
+        <div className="flex gap-1.5 mt-3">
+          {colors.map((item: any) => { 
+            const colorAvailable = item.available && (!item.sizeAvailability || Object.values(item.sizeAvailability).some(Boolean)); 
+            const selected = selectedColor === item.name; 
+            return (
+              <button 
+                key={item.name} 
+                disabled={!colorAvailable} 
+                onClick={() => { 
+                  setSelectedColor(item.name); 
+                  const nextSizes = sizesForColor(item.name);
+                  setSize(nextSizes.find((entry) => entry.available)?.name || ''); 
+                }} 
+                className={`w-7 h-7 rounded-full transition-transform hover:scale-110 ${selected ? 'ring-2 ring-offset-2 ring-[#c59b52] scale-110' : 'border border-gray-200'} disabled:opacity-30 disabled:grayscale`} 
+                style={{ backgroundColor: getColorHex(item.name) }} 
+                aria-label={`لون ${item.name}`} 
+                title={item.name} 
+              />
+            ); 
+          })}
+        </div>
       </div>
     </motion.div>
   );
@@ -90,9 +163,24 @@ export default function ProductShowcase({ products, onAdd, wishlist, onToggleWis
   return (
     <section id="products" ref={ref} className="py-20 sm:py-28 bg-white relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={inView ? { opacity: 1, y: 0 } : {}} className="mb-12"><span className="text-xs font-semibold text-ora-600 mb-3 block">{language === 'he' ? t('curated') : 'Curated For You'}</span><h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold">{language === 'he' ? t('collection') : <>تصفح <span className="gradient-text">التشكيلة</span></>}</h2></motion.div>
-        <div className="flex flex-wrap gap-2 mb-10">{categories.map((category) => <button key={category} onClick={() => setActiveCategory(category)} className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${activeCategory === category ? 'bg-ora-200 shadow-md' : 'bg-ora-100/60 hover:bg-ora-200'}`}>{language === 'he' && category === 'الكل' ? t('all') : category}</button>)}</div>
-        <AnimatePresence mode="wait"><motion.div key={activeCategory} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10">{visible.map((product, index) => <ProductCard key={product.id} product={product} index={index} onAdd={onAdd} liked={wishlist.some((item) => item.id === product.id)} onToggleWishlist={onToggleWishlist} />)}</motion.div></AnimatePresence>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={inView ? { opacity: 1, y: 0 } : {}} className="mb-12">
+          <span className="text-xs font-semibold text-ora-600 mb-3 block">{language === 'he' ? t('curated') : 'Curated For You'}</span>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold">{language === 'he' ? t('collection') : <>تصفح <span className="gradient-text">التشكيلة</span></>}</h2>
+        </motion.div>
+        <div className="flex flex-wrap gap-2 mb-10">
+          {categories.map((category) => (
+            <button key={category} onClick={() => setActiveCategory(category)} className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${activeCategory === category ? 'bg-ora-200 shadow-md' : 'bg-ora-100/60 hover:bg-ora-200'}`}>
+              {language === 'he' && category === 'الكل' ? t('all') : category}
+            </button>
+          ))}
+        </div>
+        <AnimatePresence mode="wait">
+          <motion.div key={activeCategory} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10">
+            {visible.map((product, index) => (
+              <ProductCard key={product.id} product={product} index={index} onAdd={onAdd} liked={wishlist.some((item) => item.id === product.id)} onToggleWishlist={onToggleWishlist} />
+            ))}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </section>
   );
