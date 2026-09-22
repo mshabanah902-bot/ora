@@ -36,7 +36,7 @@ const getProductSizes = (product: Product) => product.sizes?.length
   : [{ name: 'One Size', available: true }];
 
 // تم استخدام 'any' لتجاوز خطأ التايب سكربت المزعج
-function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { product: Product; index: number; onAdd: (product: Product, color: string, size: string) => void; liked: boolean; onToggleWishlist: (product: Product, color: string, size: string) => void }) {  const { language, t } = useLanguage();
+function ProductCard({ product, index, onAdd, liked, onToggleWishlist, selected, onSelect }: { product: Product; index: number; onAdd: (product: Product, color: string, size: string) => void; liked: boolean; onToggleWishlist: (product: Product, color: string, size: string) => void; selected: boolean; onSelect: (productId: number) => void }) {  const { language, t } = useLanguage();
   const sizes = getProductSizes(product);
   
   const rawColors = (product as any).colors;
@@ -82,7 +82,7 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { produ
   const canAddToCart = Boolean(size && productAvailable && isSelectedColorAvailable && isSelectedSizeAvailable);
 
   return (
-    <motion.div layout initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} className="group">
+    <motion.div layout initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} className={`group scroll-mt-32 ${selected ? 'ring-2 ring-ora-300 rounded-2xl p-1 shadow-lg shadow-ora-200/40' : ''}`}>
       <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-ora-100 mb-4">
         <img src={colorImage} alt={`${product.name} - ${activeColor?.name || ''}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
         <span className="absolute top-3 left-3 px-3 py-1 bg-white/90 text-[10px] font-bold rounded-full">{product.badge}</span>
@@ -96,10 +96,14 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { produ
 
       <div className="px-1">
         <div className="flex items-center justify-between mb-1">
-          <h3 className="font-semibold text-sm">{product.name}</h3>
+          <button type="button" onClick={() => onSelect(product.id)} className="text-right font-semibold text-sm text-charcoal-900 hover:text-ora-700 transition-colors cursor-pointer">
+            {product.name}
+          </button>
           <span className="flex items-center gap-1 text-xs"><Star className="w-3 h-3 fill-amber-400 text-amber-400" />{product.rating}</span>
         </div>
-        <p className="text-xs text-charcoal-400 mb-2">{product.nameAr} - لون {activeColor?.name || ''}</p>
+        <button type="button" onClick={() => onSelect(product.id)} className="block text-xs text-charcoal-400 mb-2 text-right hover:text-ora-600 transition-colors cursor-pointer">
+          {product.nameAr} - لون {activeColor?.name || ''}
+        </button>
         
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -171,6 +175,7 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { produ
 // تم استخدام 'any' هنا أيضاً لتجاوز الأخطاء
 export default function ProductShowcase({ products: initialProducts, onAdd, wishlist, onToggleWishlist }: { products: Product[]; onAdd: any; wishlist: WishlistItem[]; onToggleWishlist: any }) {
   const [activeCategory, setActiveCategory] = useState('الكل');
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const cloudProducts = initialProducts;
 
   const categories = useMemo(() => {
@@ -185,6 +190,17 @@ export default function ProductShowcase({ products: initialProducts, onAdd, wish
   const visible = (activeCategory === 'الكل' ? cloudProducts : cloudProducts.filter((product) => product.category === activeCategory))
     .slice()
     .sort((a, b) => Number(b.id) - Number(a.id));
+
+  useEffect(() => {
+    if (!selectedProductId) return;
+    const timer = window.setTimeout(() => {
+      const target = document.querySelector(`[data-product-id="${selectedProductId}"]`);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [selectedProductId]);
 
   return (
     <section id="products" ref={ref} className="py-20 sm:py-28 bg-white relative">
@@ -205,14 +221,17 @@ export default function ProductShowcase({ products: initialProducts, onAdd, wish
 <AnimatePresence mode="wait">
           <motion.div key={activeCategory} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10">
             {visible.map((product, index) => (
-              <ProductCard 
-                key={product.id || index} 
-                product={product} 
-                index={index} 
-                onAdd={onAdd} 
-                liked={wishlist.some((item) => item.id === product.id)} 
-                onToggleWishlist={onToggleWishlist} 
-              />
+              <div key={product.id || index} data-product-id={product.id}>
+                <ProductCard 
+                  product={product} 
+                  index={index} 
+                  onAdd={onAdd} 
+                  liked={wishlist.some((item) => item.id === product.id)} 
+                  onToggleWishlist={onToggleWishlist} 
+                  selected={selectedProductId === product.id}
+                  onSelect={setSelectedProductId} 
+                />
+              </div>
             ))}
           </motion.div>
         </AnimatePresence>
