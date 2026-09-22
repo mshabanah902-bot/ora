@@ -35,13 +35,17 @@ const mergeSiteContent = (value: Partial<SiteContent> | null | undefined): SiteC
 });
 
 export default function App() {
-  const [products, setProducts] = useState<Product[]>(defaultProducts);
+  const [products, setProducts] = useState<Product[]>(() => readStored<Product[]>('ora-products', defaultProducts));
   const [cart, setCart] = useState<CartItem[]>(() => readStored<CartItem[]>('ora-cart', []));
   const [cartOpen, setCartOpen] = useState(false);
   const [wishlist, setWishlist] = useState<WishlistItem[]>(() => readStored<WishlistItem[]>('ora-wishlist', []));
   const [siteContent, setSiteContent] = useState<SiteContent>(defaultSiteContent);
   useEffect(() => {
-    void loadProducts().then((data) => setProducts(data.length ? data : defaultProducts)).catch(() => undefined);
+    void loadProducts().then((data) => {
+      if (!data.length) return;
+      setProducts(data);
+      localStorage.setItem('ora-products', JSON.stringify(data));
+    }).catch(() => undefined);
     void loadSiteContent().then((data) => setSiteContent(mergeSiteContent(data))).catch(() => undefined);
   }, []);
   useEffect(() => { localStorage.setItem('ora-cart', JSON.stringify(cart)); }, [cart]);
@@ -64,7 +68,11 @@ export default function App() {
     });
   };
   const changeQuantity = (lineId: string, delta: number) => setCart((items) => items.map((item) => item.lineId === lineId ? { ...item, quantity: item.quantity + delta } : item).filter((item) => item.quantity > 0));
-  const saveProducts = async (next: Product[]) => { setProducts(next); await persistProducts(next); };
+  const saveProducts = async (next: Product[]) => {
+    setProducts(next);
+    localStorage.setItem('ora-products', JSON.stringify(next));
+    await persistProducts(next);
+  };
   const saveSiteContent = async (next: SiteContent) => { const merged = mergeSiteContent(next); await persistSiteContent(merged); setSiteContent(merged); };
   const toggleWishlist = (product: Product, selectedColor: string, selectedSize: string) => setWishlist((current) => {
     const next = current.some((item) => item.id === product.id)
