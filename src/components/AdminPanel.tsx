@@ -57,22 +57,25 @@ export default function AdminPanel({ products, onSave, siteContent, onSaveSiteCo
   };
 
 const save = async () => {
+    // تحديث الحالة فوراً لتظهر في الواجهة الرئيسية ولدى المستخدم
     onSave(draft);
+    
     try {
-      const response = await fetch(apiUrl('/api/products'), {
+      // تخزين المنتجات محلياً لضمان عدم ضياعها عند تحديث الصفحة
+      localStorage.setItem('ora-products', JSON.stringify(draft));
+      
+      // محاولة الإرسال للـ API إن وجد
+      await fetch(apiUrl('/api/products'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-admin-password': 'ora123' },
         body: JSON.stringify(draft),
       });
-      if (!response.ok) {
-        localStorage.setItem('ora-products', JSON.stringify(draft));
-      }
-    } catch {
-      localStorage.setItem('ora-products', JSON.stringify(draft));
+    } catch (err) {
+      console.error('خطأ في الاتصال بالخادم، تم الحفظ محلياً:', err);
     }
+    
     setOpen(false);
   };
-
   const saveContent = async () => {
     onSaveSiteContent(contentDraft);
     try {
