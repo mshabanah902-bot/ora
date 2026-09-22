@@ -56,7 +56,7 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { produ
   
   useEffect(() => {
     if (colorImages.length < 2) return;
-    const timer = window.setInterval(() => setImageIndex((current) => (current + 1) % colorImages.length), 2800);
+    const timer = window.setInterval(() => setImageIndex((current) => (current + 1) % colorImages.length), 3000);
     return () => window.clearInterval(timer);
   }, [colorImages.length, selectedColor]);
 
