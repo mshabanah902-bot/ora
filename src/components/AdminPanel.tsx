@@ -15,7 +15,7 @@ type Order = {
 
 type Tab = 'products' | 'orders' | 'settings';
 
-export default function AdminPanel({ products, onSave, siteContent, onSaveSiteContent }: { products: Product[]; onSave: (products: Product[]) => Promise<void>; siteContent: SiteContent; onSaveSiteContent: (content: SiteContent) => Promise<void> }) {
+export default function AdminPanel({ products, onSave, siteContent, onSaveSiteContent }: { products: Product[]; onSave: (products?: Product[]) => Promise<void>; siteContent: SiteContent; onSaveSiteContent: (content: SiteContent) => Promise<void> }) {
   const [open, setOpen] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
@@ -55,14 +55,13 @@ export default function AdminPanel({ products, onSave, siteContent, onSaveSiteCo
     }))).then(onRead).catch(() => undefined);
   };
 
-const save = async () => {
+const save = async (productsToSave?: Product[]) => {
     try {
-      await onSave(draft);
+      await onSave(productsToSave || draft);
     } catch {
       return;
     }
-    
-    setOpen(false);
+    if (!productsToSave) setOpen(false);
   };
   const saveContent = async () => {
     try { await onSaveSiteContent(contentDraft); } catch { return; }
@@ -109,7 +108,7 @@ const save = async () => {
   }
 }
 
-function ProductsTab({ draft, update, onDraftChange, onSave, readImages }: { draft: Product[]; update: (index: number, change: Partial<Product>) => void; onDraftChange: Dispatch<SetStateAction<Product[]>>; onSave: () => void; readImages: (files: FileList | null, onRead: (images: string[]) => void) => void }) {
+function ProductsTab({ draft, update, onDraftChange, onSave, readImages }: { draft: Product[]; update: (index: number, change: Partial<Product>) => void; onDraftChange: Dispatch<SetStateAction<Product[]>>; onSave: (products?: Product[]) => Promise<void>; readImages: (files: FileList | null, onRead: (images: string[]) => void) => void }) {
   const [newProduct, setNewProduct] = useState<Product>(() => createEmptyProduct(1));
   const [productSection, setProductSection] = useState<'add' | 'existing'>('add');
   const nextId = useMemo(() => draft.reduce((highest, product) => Math.max(highest, product.id), 0) + 1, [draft]);
@@ -124,7 +123,9 @@ function ProductsTab({ draft, update, onDraftChange, onSave, readImages }: { dra
   const addProduct = () => {
     if (!newProduct.name.trim() || !newProduct.nameAr.trim() || !newProduct.colors.some((color) => color.name.trim() && color.image)) return;
     const product = { ...newProduct, id: nextId, image: newProduct.colors.find((color) => color.image)?.image || newProduct.image };
-    onDraftChange((current) => [...current, product]);
+    const nextProducts = [...draft, product];
+    onDraftChange(nextProducts);
+    void onSave(nextProducts);
     setNewProduct(createEmptyProduct(nextId + 1));
   };
 
@@ -187,7 +188,7 @@ function ProductsTab({ draft, update, onDraftChange, onSave, readImages }: { dra
         <div className="mt-4 border-t pt-3"><p className="font-bold text-sm mb-2">الألوان والصور والتوفر حسب النمرة</p><div className="space-y-3">{colors.map((color, colorIndex) => <div key={`${color.name}-${colorIndex}`} className="rounded-xl bg-ora-50 p-2"><div className="flex gap-2 items-center"><input className="field" value={color.name} onChange={(e) => setColors(colors.map((item, i) => i === colorIndex ? { ...item, name: e.target.value } : item))} placeholder="اسم اللون" /><button onClick={() => setColors(colors.map((item, i) => i === colorIndex ? { ...item, available: !item.available } : item))} className={`px-3 py-2 rounded-lg text-xs whitespace-nowrap ${color.available ? 'availability-available' : 'availability-unavailable'}`}>{color.available ? 'اللون متوفر' : 'اللون غير متوفر'}</button></div><div className="mt-2 flex flex-wrap gap-1.5">{sizes.map((size) => { const available = color.sizeAvailability?.[size.name] ?? (color.available && size.available); return <button key={size.name} onClick={() => setColors(colors.map((item, i) => i === colorIndex ? { ...item, sizeAvailability: { ...item.sizeAvailability, [size.name]: !available }, available: true } : item))} className={`rounded-lg px-2 py-1 text-xs ${available ? 'availability-available' : 'availability-unavailable'}`}>{size.name}: {available ? 'متوفر' : 'غير متوفر'}</button>; })}</div><label className="mt-2 flex items-center gap-2 text-xs text-charcoal-500 cursor-pointer"><ImagePlus size={16} /> رفع صورة هذا اللون<input type="file" accept="image/*" className="hidden" onChange={(e) => readImage(e.target.files?.[0], (image) => setColors(colors.map((item, i) => i === colorIndex ? { ...item, image } : item)))} /></label>{color.image && <img src={color.image} alt={color.name} className="mt-2 w-14 h-16 rounded-lg object-cover" />}</div>)}</div><button onClick={() => setColors([...colors, { name: '', available: true, image: product.image, sizeAvailability: Object.fromEntries(sizes.map((size) => [size.name, true])) }])} className="mt-2 text-xs text-ora-700">+ إضافة لون</button></div>
       </div>;
     })}</div>}
-    <button onClick={onSave} className="w-full mt-6 py-4 rounded-xl bg-[#2E3220] text-white font-bold">حفظ تعديلات المنتجات</button>
+    <button onClick={() => void onSave()} className="w-full mt-6 py-4 rounded-xl bg-[#2E3220] text-white font-bold">حفظ تعديلات المنتجات</button>
   </>;
 }
 
