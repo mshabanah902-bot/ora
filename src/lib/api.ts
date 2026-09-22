@@ -1,6 +1,36 @@
-const configuredUrl = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
-const API_URL = configuredUrl && !/^https?:\/\//.test(configuredUrl) ? `https://${configuredUrl}` : configuredUrl;
+import { supabase } from './supabase';
+import type { Product } from '../data/products';
+import type { SiteContent } from '../data/siteContent';
 
-export function apiUrl(path: string) {
-  return `${API_URL}${path}`;
+export async function loadProducts() {
+  const { data, error } = await supabase.from('store_settings').select('value').eq('key', 'products').maybeSingle();
+  if (error) throw error;
+  return (Array.isArray(data?.value) ? data.value : []) as Product[];
+}
+
+export async function saveProducts(products: Product[]) {
+  const { error } = await supabase.from('store_settings').upsert({ key: 'products', value: products, updated_at: new Date().toISOString() });
+  if (error) throw error;
+}
+
+export async function loadSiteContent() {
+  const { data, error } = await supabase.from('store_settings').select('value').eq('key', 'site_content').maybeSingle();
+  if (error) throw error;
+  return (data?.value || {}) as Partial<SiteContent>;
+}
+
+export async function saveSiteContent(content: SiteContent) {
+  const { error } = await supabase.from('store_settings').upsert({ key: 'site_content', value: content, updated_at: new Date().toISOString() });
+  if (error) throw error;
+}
+
+export async function loadOrders() {
+  const { data, error } = await supabase.from('orders').select('payload, created_at').order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map((row) => ({ ...(row.payload as Record<string, unknown>), createdAt: row.created_at }));
+}
+
+export async function saveOrder(order: Record<string, unknown>) {
+  const { error } = await supabase.from('orders').insert({ payload: order });
+  if (error) throw error;
 }

@@ -24,8 +24,8 @@ const Context = createContext<{ language: Language; setLanguage: (language: Lang
 });
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>(() => (localStorage.getItem('ora-language') as Language) || 'ar');
-  const setLanguage = (next: Language) => { setLanguageState(next); localStorage.setItem('ora-language', next); };
+  const [language, setLanguageState] = useState<Language>('ar');
+  const setLanguage = (next: Language) => { setLanguageState(next); };
   useEffect(() => { document.documentElement.lang = language; document.documentElement.dir = language === 'he' ? 'rtl' : 'rtl'; }, [language]);
   const value = useMemo(() => ({ language, setLanguage, t: (key: string) => language === 'he' ? he[key] || key : key }), [language]);
   return <Context.Provider value={value}>{children}</Context.Provider>;

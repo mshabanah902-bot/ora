@@ -5,7 +5,6 @@ import { useScrollReveal } from '../hooks/useScrollReveal';
 import type { Product } from '../data/products';
 import type { WishlistItem } from '../App';
 import { useLanguage } from '../i18n';
-import { supabase } from '../lib/supabase';
 
 const getColorHex = (name: string) => {
   const color = name.trim().toLocaleLowerCase();
@@ -168,26 +167,7 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { produ
 // تم استخدام 'any' هنا أيضاً لتجاوز الأخطاء
 export default function ProductShowcase({ products: initialProducts, onAdd, wishlist, onToggleWishlist }: { products: Product[]; onAdd: any; wishlist: WishlistItem[]; onToggleWishlist: any }) {
   const [activeCategory, setActiveCategory] = useState('الكل');
-  const [cloudProducts, setCloudProducts] = useState<Product[]>(initialProducts);
-
-  useEffect(() => {
-    async function fetchProductsFromSupabase() {
-      try {
-        const { data } = await supabase
-          .from('store_settings')
-          .select('value')
-          .eq('key', 'products')
-          .single();
-
-        if (data && data.value && Array.isArray(data.value)) {
-          setCloudProducts(data.value);
-        }
-      } catch {
-        // تجاهل الخطأ في حال عدم الاتصال المؤقت
-      }
-    }
-    fetchProductsFromSupabase();
-  }, []);
+  const cloudProducts = initialProducts;
 
   const categories = useMemo(() => {
     const baseCategories = ['الكل', 'ATHER', 'NASAQ', 'SAHAB', 'WAQAR', 'OFUQ', 'TAYF'];

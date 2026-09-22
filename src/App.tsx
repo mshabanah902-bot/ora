@@ -9,7 +9,7 @@ import ProductShowcase from './components/ProductShowcase';
 import CartDrawer, { type CartItem } from './components/CartDrawer';
 import AdminPanel from './components/AdminPanel';
 import { defaultProducts, type Product } from './data/products';
-import { apiUrl } from './lib/api';
+import { loadProducts, loadSiteContent, saveProducts as persistProducts, saveSiteContent as persistSiteContent } from './lib/api';
 import { defaultSiteContent, type SiteContent } from './data/siteContent';
 
 export type WishlistItem = Product & { selectedColor: string; selectedSize: string };
@@ -29,27 +29,20 @@ export default function App() {
   const [products, setProducts] = useState<Product[]>(defaultProducts);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
-  const [wishlist, setWishlist] = useState<WishlistItem[]>(() => {
-    try { return JSON.parse(localStorage.getItem('ora-wishlist') || '[]'); } catch { return []; }
-  });
+  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [siteContent, setSiteContent] = useState<SiteContent>(defaultSiteContent);
   useEffect(() => {
-    const saved = localStorage.getItem('ora-products');
-    if (saved) try { setProducts(JSON.parse(saved)); } catch { localStorage.removeItem('ora-products'); }
-    fetch(apiUrl('/api/products')).then((response) => response.ok ? response.json() : Promise.reject()).then((data) => Array.isArray(data) && data.length > 0 && setProducts(data)).catch(() => undefined);
-    const savedContent = localStorage.getItem('ora-site-content');
-    if (savedContent) try { setSiteContent(mergeSiteContent(JSON.parse(savedContent))); } catch { localStorage.removeItem('ora-site-content'); }
-    fetch(apiUrl('/api/settings')).then((response) => response.ok ? response.json() : Promise.reject()).then((data) => data && setSiteContent(mergeSiteContent(data))).catch(() => undefined);
+    void loadProducts().then((data) => setProducts(data.length ? data : defaultProducts)).catch(() => undefined);
+    void loadSiteContent().then((data) => setSiteContent(mergeSiteContent(data))).catch(() => undefined);
   }, []);
   const addToCart = (product: Product) => { setCart((items) => { const existing = items.find((item) => item.id === product.id); return existing ? items.map((item) => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item) : [...items, { ...product, quantity: 1 }]; }); };
   const changeQuantity = (id: number, delta: number) => setCart((items) => items.map((item) => item.id === id ? { ...item, quantity: item.quantity + delta } : item).filter((item) => item.quantity > 0));
-  const saveProducts = (next: Product[]) => { setProducts(next); localStorage.setItem('ora-products', JSON.stringify(next)); };
-  const saveSiteContent = (next: SiteContent) => { const merged = mergeSiteContent(next); setSiteContent(merged); localStorage.setItem('ora-site-content', JSON.stringify(merged)); };
+  const saveProducts = async (next: Product[]) => { await persistProducts(next); setProducts(next); };
+  const saveSiteContent = async (next: SiteContent) => { const merged = mergeSiteContent(next); await persistSiteContent(merged); setSiteContent(merged); };
   const toggleWishlist = (product: Product, selectedColor: string, selectedSize: string) => setWishlist((current) => {
     const next = current.some((item) => item.id === product.id)
       ? current.filter((item) => item.id !== product.id)
       : [...current, { ...product, selectedColor, selectedSize }];
-    localStorage.setItem('ora-wishlist', JSON.stringify(next));
     return next;
   });
   return (

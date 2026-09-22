@@ -22,12 +22,6 @@
    - `FRONTEND_URL`: رابط متجر Render بعد إنشائه، مثل `https://ora-storefront.onrender.com`.
 5. متغير `VITE_API_URL` للواجهة يُربط تلقائيًا بخدمة `ora-api` عبر `render.yaml`. إذا أنشأت الخدمات يدويًا، ضعه يدويًا كرابط خدمة الـ API.
 
-## التشغيل المحلي
+## ملاحظة التخزين
 
-```bash
-npm install
-npm run server
-npm run dev
-```
-
-عند عدم وجود متغيرات Supabase يستخدم الخادم [data.json](./data.json) كـ fallback محلي. في Render يجب إضافة متغيرات Supabase حتى تبقى الطلبات والمنتجات محفوظة بعد إعادة تشغيل الخدمة.
+الواجهة تتصل مباشرة بـ Supabase لحفظ وقراءة المنتجات والمحتوى والطلبات. خادم `ora-api` الموجود في Render يستخدم Supabase أيضاً لمسارات التوافق القديمة، ولا يوجد fallback إلى `data.json` أو تخزين محلي. يجب تشغيل [supabase.sql](./supabase.sql) مرة واحدة في SQL Editor قبل استخدام لوحة الإدارة.

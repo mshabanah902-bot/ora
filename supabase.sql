@@ -13,6 +13,17 @@ create table if not exists public.orders (
 alter table public.store_settings enable row level security;
 alter table public.orders enable row level security;
 
+drop policy if exists "Public can read store settings" on public.store_settings;
+create policy "Public can read store settings" on public.store_settings for select to anon, authenticated using (true);
+drop policy if exists "Public can insert store settings" on public.store_settings;
+create policy "Public can insert store settings" on public.store_settings for insert to anon, authenticated with check (true);
+drop policy if exists "Public can update store settings" on public.store_settings;
+create policy "Public can update store settings" on public.store_settings for update to anon, authenticated using (true) with check (true);
+drop policy if exists "Public can create orders" on public.orders;
+create policy "Public can create orders" on public.orders for insert to anon, authenticated with check (true);
+drop policy if exists "Public can read orders" on public.orders;
+create policy "Public can read orders" on public.orders for select to anon, authenticated using (true);
+
 insert into public.store_settings (key, value)
 values ('products', '[]'::jsonb)
 on conflict (key) do nothing;

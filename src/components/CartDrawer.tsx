@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Minus, Plus, Trash2, X } from 'lucide-react';
 import type { Product } from '../data/products';
-import { apiUrl } from '../lib/api';
+import { saveOrder } from '../lib/api';
 import { useLanguage } from '../i18n';
 
 export type CartItem = Product & { quantity: number };
@@ -17,7 +17,7 @@ export default function CartDrawer({ open, items, onClose, onChange, onClear }: 
   const confirmOrder = async () => {
     if (!customer.name || !customer.phone || !customer.address || !items.length) return;
     const order = { customer, region, items: items.map(({ id, name, colorName, price, quantity }) => ({ id, name, color: colorName, price, quantity })), total };
-    try { await fetch(apiUrl('/api/orders'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(order) }); } catch { /* WhatsApp still works when static hosting is used. */ }
+    try { await saveOrder(order); } catch { return; }
     const text = `طلب جديد من ORA%0Aالاسم: ${customer.name}%0Aالهاتف: ${customer.phone}%0Aالموقع: ${customer.address}%0Aالمنطقة: ${region}%0A${items.map((item) => `${item.name} (${item.colorName}) × ${item.quantity} = ₪${item.price * item.quantity}`).join('%0A')}%0Aالتوصيل: ₪${delivery[region]}%0Aالإجمالي: ₪${total}`;
     window.location.href = `https://wa.me/970595203078?text=${text}`;
     onClear(); onClose();

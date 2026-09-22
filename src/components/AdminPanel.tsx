@@ -3,7 +3,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ClipboardList, Download, ImagePlus, LockKeyhole, Plus, Settings, Trash2, X } from 'lucide-react';
 import type { Product } from '../data/products';
 import type { SiteContent } from '../data/siteContent';
-import { apiUrl } from '../lib/api';type OrderItem = { id: number; name: string; color: string; price: number; quantity: number };
+import { loadOrders as loadOrdersFromSupabase } from '../lib/api';
+type OrderItem = { id: number; name: string; color: string; price: number; quantity: number };
 type Order = {
   customer: { name: string; phone: string; address: string };
   region: string;
@@ -14,7 +15,7 @@ type Order = {
 
 type Tab = 'products' | 'orders' | 'settings';
 
-export default function AdminPanel({ products, onSave, siteContent, onSaveSiteContent }: { products: Product[]; onSave: (products: Product[]) => void; siteContent: SiteContent; onSaveSiteContent: (content: SiteContent) => void }) {
+export default function AdminPanel({ products, onSave, siteContent, onSaveSiteContent }: { products: Product[]; onSave: (products: Product[]) => Promise<void>; siteContent: SiteContent; onSaveSiteContent: (content: SiteContent) => Promise<void> }) {
   const [open, setOpen] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
@@ -35,9 +36,7 @@ export default function AdminPanel({ products, onSave, siteContent, onSaveSiteCo
   const loadOrders = async () => {
     setOrdersLoading(true);
     try {
-      const response = await fetch(apiUrl('/api/orders'), { headers: { 'x-admin-password': 'ora123' } });
-      if (!response.ok) throw new Error('تعذر تحميل الطلبات');
-      setOrders(await response.json());
+      setOrders(await loadOrdersFromSupabase() as unknown as Order[]);
     } catch {
       setOrders([]);
     } finally {
@@ -57,39 +56,16 @@ export default function AdminPanel({ products, onSave, siteContent, onSaveSiteCo
   };
 
 const save = async () => {
-    // تحديث الحالة فوراً لتظهر في الواجهة الرئيسية ولدى المستخدم
-    onSave(draft);
-    
     try {
-      // تخزين المنتجات محلياً لضمان عدم ضياعها عند تحديث الصفحة
-      localStorage.setItem('ora-products', JSON.stringify(draft));
-      
-      // محاولة الإرسال للـ API إن وجد
-      await fetch(apiUrl('/api/products'), {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-admin-password': 'ora123' },
-        body: JSON.stringify(draft),
-      });
-    } catch (err) {
-      console.error('خطأ في الاتصال بالخادم، تم الحفظ محلياً:', err);
+      await onSave(draft);
+    } catch {
+      return;
     }
     
     setOpen(false);
   };
   const saveContent = async () => {
-    onSaveSiteContent(contentDraft);
-    try {
-      const response = await fetch(apiUrl('/api/settings'), { 
-        method: 'PUT', 
-        headers: { 'Content-Type': 'application/json', 'x-admin-password': 'ora123' }, 
-        body: JSON.stringify(contentDraft) 
-      });
-      if (!response.ok) {
-        localStorage.setItem('ora-site-content', JSON.stringify(contentDraft));
-      }
-    } catch { 
-      localStorage.setItem('ora-site-content', JSON.stringify(contentDraft)); 
-    }
+    try { await onSaveSiteContent(contentDraft); } catch { return; }
     setOpen(false);
   };  return (
     <>
