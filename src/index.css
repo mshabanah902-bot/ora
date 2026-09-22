@@ -71,6 +71,18 @@
     line-height: 1.6;
   }
 
+  .size-option {
+    border: 1px solid #e2d7c8;
+    background: #f0ebe3;
+    color: #36383c;
+  }
+
+  .size-option-selected {
+    border-color: #a98a6a;
+    background: #a98a6a;
+    color: #fff;
+  }
+
   @media (max-width: 640px) {
     h1 {
       text-align: center;
