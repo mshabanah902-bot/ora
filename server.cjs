@@ -36,6 +36,12 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
   if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
   try {
+    if (req.url === '/' && req.method === 'GET') {
+      return reply(res, 200, { service: 'ora-api', status: 'ok', endpoints: ['/health', '/api/products', '/api/settings', '/api/orders'] });
+    }
+    if (req.url === '/health' && req.method === 'GET') {
+      return reply(res, 200, { ok: true, storage: usingSupabase ? 'supabase' : 'local' });
+    }
     if (req.url === '/api/products' && req.method === 'GET') {
       if (usingSupabase) {
         const rows = await supabase('store_settings?key=eq.products&select=value');
