@@ -19,7 +19,7 @@ export default function CartDrawer({ open, items, onClose, onChange, onClear }: 
     const order = { customer, region, items: items.map(({ id, name, colorName, price, quantity }) => ({ id, name, color: colorName, price, quantity })), total };
     try { await fetch(apiUrl('/api/orders'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(order) }); } catch { /* WhatsApp still works when static hosting is used. */ }
     const text = `طلب جديد من ORA%0Aالاسم: ${customer.name}%0Aالهاتف: ${customer.phone}%0Aالموقع: ${customer.address}%0Aالمنطقة: ${region}%0A${items.map((item) => `${item.name} (${item.colorName}) × ${item.quantity} = ₪${item.price * item.quantity}`).join('%0A')}%0Aالتوصيل: ₪${delivery[region]}%0Aالإجمالي: ₪${total}`;
-    window.open(`https://wa.me/972595203078?text=${text}`, '_blank', 'noopener,noreferrer');
+    window.location.href = `https://wa.me/972595203078?text=${text}`;
     onClear(); onClose();
   };
   return <AnimatePresence>{open && <><motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-black/40 z-[60]" /><motion.aside initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 26 }} dir="rtl" className="fixed top-0 right-0 h-full w-full max-w-md bg-[#faf8f5] z-[61] shadow-2xl p-5 sm:p-7 overflow-y-auto">

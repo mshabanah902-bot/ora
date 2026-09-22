@@ -41,7 +41,7 @@ export default function App() {
     if (savedContent) try { setSiteContent(mergeSiteContent(JSON.parse(savedContent))); } catch { localStorage.removeItem('ora-site-content'); }
     fetch(apiUrl('/api/settings')).then((response) => response.ok ? response.json() : Promise.reject()).then((data) => data && setSiteContent(mergeSiteContent(data))).catch(() => undefined);
   }, []);
-  const addToCart = (product: Product) => { setCart((items) => { const existing = items.find((item) => item.id === product.id); return existing ? items.map((item) => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item) : [...items, { ...product, quantity: 1 }]; }); setCartOpen(true); };
+  const addToCart = (product: Product) => { setCart((items) => { const existing = items.find((item) => item.id === product.id); return existing ? items.map((item) => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item) : [...items, { ...product, quantity: 1 }]; }); };
   const changeQuantity = (id: number, delta: number) => setCart((items) => items.map((item) => item.id === id ? { ...item, quantity: item.quantity + delta } : item).filter((item) => item.quantity > 0));
   const saveProducts = (next: Product[]) => { setProducts(next); localStorage.setItem('ora-products', JSON.stringify(next)); };
   const saveSiteContent = (next: SiteContent) => { const merged = mergeSiteContent(next); setSiteContent(merged); localStorage.setItem('ora-site-content', JSON.stringify(merged)); };
