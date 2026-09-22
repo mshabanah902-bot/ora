@@ -7,6 +7,30 @@ import type { WishlistItem } from '../App';
 import { useLanguage } from '../i18n';
 
 const categories = ['الكل', 'ATHER', 'NASAQ', 'SAHAB', 'WAQAR', 'OFUQ', 'TAYF'];
+const getColorHex = (name: string) => {
+  const color = name.trim().toLocaleLowerCase();
+  const colors: Record<string, string> = {
+    'ابيض': '#f5f2ed', 'أبيض': '#f5f2ed', white: '#f5f2ed',
+    'اسود': '#171717', 'أسود': '#171717', black: '#171717',
+    'كحلي': '#1d2d4b', navy: '#1d2d4b',
+    'زيتي': '#65705a', olive: '#65705a',
+    'بني': '#795548', brown: '#795548',
+    'بيج': '#d6c2a5', beige: '#d6c2a5',
+    'عنابي': '#7f1d32', burgundy: '#7f1d32',
+    'احمر': '#b91c1c', 'أحمر': '#b91c1c', red: '#b91c1c',
+    'ازرق': '#2563eb', 'أزرق': '#2563eb', blue: '#2563eb',
+    'اخضر': '#15803d', 'أخضر': '#15803d', green: '#15803d',
+    'رمادي': '#6b7280', gray: '#6b7280', grey: '#6b7280',
+    'موف': '#8b5cf6', بنفسجي: '#7c3aed', purple: '#7c3aed',
+    'وردي': '#ec4899', pink: '#ec4899',
+    'برتقالي': '#ea580c', orange: '#ea580c',
+    'اصفر': '#eab308', 'أصفر': '#eab308', yellow: '#eab308',
+    'ذهبي': '#c59b52', gold: '#c59b52',
+    'فضي': '#a8a29e', silver: '#a8a29e',
+    موكا: '#92745f', mocha: '#92745f',
+  };
+  return colors[color] || '#a98a6a';
+};
 const getProductSizes = (product: Product) => product.sizes?.length
   ? product.sizes
   : [{ name: 'One Size', available: true }];
@@ -50,7 +74,7 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { produ
         <p className="text-xs text-charcoal-400 mb-2">{product.nameAr} - لون {activeColor?.name || ''}</p>
         <div className="flex items-center justify-between gap-2"><div className="flex items-center gap-2"><span className="text-base font-bold">₪{product.price}</span><span className="text-xs text-charcoal-400 line-through">₪{product.originalPrice}</span></div><button disabled={!size || !colors.some((item) => item.available)} onClick={() => onAdd(product)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2E3220] px-4 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:bg-ora-700 hover:-translate-y-0.5 active:scale-95 whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"><ShoppingBag className="w-4 h-4" />{language === 'he' ? t('addToCart') : 'أضف للسلة'}</button></div>
         <div className="mt-3"><span className="text-xs text-charcoal-500">{language === 'he' ? t('availableSizes') : 'النمر المتوفرة:'}</span><div className="flex flex-wrap gap-1.5 mt-1">{colorSizes.map((item) => <button key={item.name} disabled={!item.available} onClick={() => setSize(item.name)} className={`size-option min-w-8 px-2 py-1 rounded-lg text-xs font-semibold transition-all ${size === item.name ? 'size-option-selected' : ''} disabled:opacity-35 disabled:line-through`} aria-label={`${language === 'he' ? t('size') : 'نمرة'} ${item.name}`}>{item.name}</button>)}</div></div>
-        <div className="flex gap-1.5 mt-3">{colors.map((item) => { const colorAvailable = item.available && (!item.sizeAvailability || Object.values(item.sizeAvailability).some(Boolean)); return <button key={item.name} disabled={!colorAvailable} onClick={() => { setSelectedColor(item.name); setSize(sizesForColor(item.name).find((entry) => entry.available)?.name || ''); }} className={`w-7 h-7 rounded-full border-2 transition-transform hover:scale-110 ${selectedColor === item.name ? 'border-charcoal-900 scale-110' : 'border-white'} disabled:opacity-30 disabled:grayscale`} style={{ backgroundColor: item.name === 'ابيض' ? '#f5f2ed' : item.name === 'اسود' ? '#111' : item.name === 'كحلي' ? '#1d2d4b' : item.name === 'زيتي' ? '#65705a' : '#a98a6a' }} aria-label={`لون ${item.name}`} />; })}</div>
+        <div className="flex gap-1.5 mt-3">{colors.map((item) => { const colorAvailable = item.available && (!item.sizeAvailability || Object.values(item.sizeAvailability).some(Boolean)); const selected = selectedColor === item.name; return <button key={item.name} disabled={!colorAvailable} onClick={() => { setSelectedColor(item.name); setSize(sizesForColor(item.name).find((entry) => entry.available)?.name || ''); }} className={`w-7 h-7 rounded-full border-2 transition-transform hover:scale-110 ${selected ? 'border-ora-600 scale-110' : 'border-white'} disabled:opacity-30 disabled:grayscale`} style={{ backgroundColor: selected ? '#a98a6a' : getColorHex(item.name) }} aria-label={`لون ${item.name}`} title={item.name} />; })}</div>
       </div>
     </motion.div>
   );
