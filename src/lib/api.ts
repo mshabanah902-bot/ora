@@ -9,8 +9,9 @@ export async function loadProducts() {
 }
 
 export async function saveProducts(products: Product[]) {
-  const { error } = await supabase.from('store_settings').upsert({ key: 'products', value: products, updated_at: new Date().toISOString() });
+  const { data, error } = await supabase.from('store_settings').upsert({ key: 'products', value: products, updated_at: new Date().toISOString() }).select('value').single();
   if (error) throw error;
+  if (!Array.isArray(data?.value) || data.value.length !== products.length) throw new Error('Supabase did not confirm the products update');
 }
 
 export async function loadSiteContent() {

@@ -24,6 +24,7 @@ export default function AdminPanel({ products, onSave, siteContent, onSaveSiteCo
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [contentDraft, setContentDraft] = useState<SiteContent>(siteContent);
+  const [saveError, setSaveError] = useState('');
 
   const login = async () => {
     if (password !== 'ora123') return;
@@ -49,16 +50,19 @@ export default function AdminPanel({ products, onSave, siteContent, onSaveSiteCo
     if (!files?.length) return;
     Promise.all(Array.from(files).map((file) => new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result));
+      reader.onload = () => optimizeImage(String(reader.result)).then(resolve).catch(() => resolve(String(reader.result)));
       reader.onerror = reject;
       reader.readAsDataURL(file);
     }))).then(onRead).catch(() => undefined);
   };
 
 const save = async (productsToSave?: Product[]) => {
+    setSaveError('');
     try {
       await onSave(productsToSave || draft);
-    } catch {
+    } catch (error) {
+      console.error('تعذر حفظ المنتجات في Supabase', error);
+      setSaveError('تعذر حفظ المنتجات في قاعدة البيانات. حاول مرة أخرى.');
       return;
     }
     if (!productsToSave) setOpen(false);
@@ -87,7 +91,8 @@ const save = async (productsToSave?: Product[]) => {
                 </div>
               ) : (
                 <>
-                  <h2 className="text-2xl font-bold mb-6">لوحة الإدارة</h2>
+                  <h2 className="text-2xl font-bold mb-2">لوحة الإدارة</h2>
+                  {saveError && <p className="text-sm text-red-600 mb-4">{saveError}</p>}
                   <div className="grid grid-cols-3 gap-2 mb-6">
                     <button onClick={() => setTab('products')} className={`py-3 rounded-xl font-semibold transition-all ${tab === 'products' ? 'bg-[#2E3220] text-white' : 'bg-white'}`}>المنتجات</button>
                     <button onClick={() => { setTab('orders'); void loadOrders(); }} className={`py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${tab === 'orders' ? 'bg-[#2E3220] text-white' : 'bg-white'}`}><ClipboardList size={17} /> الطلبات</button>
@@ -227,8 +232,25 @@ function createEmptyProduct(id: number): Product {
 function readImage(file: File | undefined, onRead: (image: string) => void) {
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = () => onRead(String(reader.result));
+  reader.onload = () => optimizeImage(String(reader.result)).then(onRead).catch(() => onRead(String(reader.result)));
   reader.readAsDataURL(file);
+}
+
+function optimizeImage(dataUrl: string) {
+  return new Promise<string>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      const maxSize = 1400;
+      const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+      canvas.getContext('2d')?.drawImage(image, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/webp', 0.82));
+    };
+    image.onerror = reject;
+    image.src = dataUrl;
+  });
 }
 
 function ContentTab({ draft, update, onSave }: { draft: SiteContent; update: (content: SiteContent) => void; onSave: () => void }) {
