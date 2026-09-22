@@ -184,16 +184,6 @@ export default function Hero({ content }: { content: SiteContent['hero'] }) {
                 </div>
               </motion.div>
 
-              {/* Price Tag */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: 1.4, type: 'spring' }}
-                className="absolute right-4 sm:right-8 bottom-4 glass rounded-xl px-3 py-2 shadow-lg"
-              >
-                <div className="text-[20px] text-charcoal-400 line-through">₪280</div>
-                <div className="text-sm font-bold text-charcoal-900">₪200</div>
-              </motion.div>
             </motion.div>
           </div>
         </div>
