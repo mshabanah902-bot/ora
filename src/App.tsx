@@ -84,9 +84,11 @@ export default function App() {
   });
   return (
     <div className="min-h-screen">
-      <Navbar onCartOpen={() => setCartOpen(true)} cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)} wishlist={wishlist} onToggleWishlist={toggleWishlist} />
+      <Navbar products={products} onCartOpen={() => setCartOpen(true)} cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)} wishlist={wishlist} onToggleWishlist={toggleWishlist} />
       <Hero content={siteContent.hero} />
-      <Collections collections={siteContent.collections} />
+      <Collections collections={siteContent.collections} onSelectCollection={(title) => {
+        document.dispatchEvent(new CustomEvent('ora:select-collection', { detail: title }));
+      }} />
       <ProductShowcase products={products} onAdd={addToCart} wishlist={wishlist} onToggleWishlist={toggleWishlist} />
       <Benefits content={siteContent.story} />      <Footer />
       <button onClick={() => setCartOpen(true)} className="fixed bottom-5 right-5 z-40 w-14 h-14 rounded-full bg-[#2E3220] text-white shadow-xl flex items-center justify-center hover:scale-110 hover:bg-ora-700 transition-all duration-300" aria-label="فتح السلة">

@@ -4,7 +4,7 @@ import { ArrowUpRight } from 'lucide-react';
 import type { SiteContent } from '../data/siteContent';
 import { useLanguage } from '../i18n';
 
-export default function Collections({ collections = [] }: { collections?: SiteContent['collections'] }) {
+export default function Collections({ collections = [], onSelectCollection }: { collections?: SiteContent['collections']; onSelectCollection?: (title: string) => void }) {
   const { ref, inView } = useScrollReveal(0.1);
   const { language, t } = useLanguage();
 
@@ -38,6 +38,7 @@ export default function Collections({ collections = [] }: { collections?: SiteCo
             <motion.a
               key={col.title}
               href="#products"
+              onClick={() => onSelectCollection?.(col.title)}
               initial={{ opacity: 0, y: 30 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.2 + i * 0.15 }}

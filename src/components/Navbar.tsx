@@ -12,8 +12,7 @@ const navLinks = [
   { label: 'About', href: '#features' },
 ];
 
-// قاعدة بيانات المنتجات والألوان للبحث والمطابقة المباشرة
-type Product = {
+type SearchResult = {
   id: number;
   name: string;
   nameAr: string;
@@ -21,25 +20,12 @@ type Product = {
   image: string;
 };
 
-const productsData: Product[] = [
-  { id: 1, name: 'ATHER', nameAr: 'أثيـــــر', color: 'كحلي', image: 'https://res.cloudinary.com/lohinijb/image/upload/v1787262325/13d50c31-f92c-44c0-a432-fba5ae36b743.jpg' },
-  { id: 1, name: 'ATHER', nameAr: 'أثيـــــر', color: 'أسود', image: 'https://res.cloudinary.com/lohinijb/image/upload/v1787280199/IMG_8949.jpg' },
-  { id: 1, name: 'ATHER', nameAr: 'أثيـــــر', color: 'بني', image: 'https://res.cloudinary.com/lohinijb/image/upload/v1787280199/IMG_8951.jpg' },
-  { id: 2, name: 'NASAQ', nameAr: 'نســـــق', color: 'أبيض', image: 'https://res.cloudinary.com/lohinijb/image/upload/v1787262324/a0c5a5db-bc7a-4671-a8d1-31724f7b9a05.jpg' },
-  { id: 2, name: 'NASAQ', nameAr: 'نســـــق', color: 'موكا تاوب', image: 'https://res.cloudinary.com/lohinijb/image/upload/v1787280462/IMG_9120.jpg' },
-  { id: 3, name: 'SAHAB', nameAr: 'سحــــاب', color: 'بيج', image: 'https://res.cloudinary.com/lohinijb/image/upload/v1787262324/IMG_9114.jpg' },
-  { id: 4, name: 'WAQAR', nameAr: 'وقــــار', color: 'بني', image: 'https://res.cloudinary.com/lohinijb/image/upload/v1787262327/IMG_9119.jpg' },
-  { id: 4, name: 'WAQAR', nameAr: 'وقــــار', color: 'عنابي', image: 'https://res.cloudinary.com/lohinijb/image/upload/v1787280712/IMG_9121.jpg' },
-  { id: 5, name: 'OFUQ', nameAr: 'افـــــق', color: 'زيتي', image: 'https://res.cloudinary.com/lohinijb/image/upload/v1787280838/Generated_Image_August_21_2026_-_5_53AM.jpg' },
-  { id: 6, name: 'TAYF', nameAr: 'طيــــف', color: 'كحلي', image: 'https://res.cloudinary.com/lohinijb/image/upload/v1787280899/Generated_Image_August_21_2026_-_5_54AM.jpg' },
-];
-
-export default function Navbar({ onCartOpen, cartCount, wishlist, onToggleWishlist }: { onCartOpen: () => void; cartCount: number; wishlist: WishlistItem[]; onToggleWishlist: (product: StoreProduct, color: string, size: string) => void }) {
+export default function Navbar({ products, onCartOpen, cartCount, wishlist, onToggleWishlist }: { products: StoreProduct[]; onCartOpen: () => void; cartCount: number; wishlist: WishlistItem[]; onToggleWishlist: (product: StoreProduct, color: string, size: string) => void }) {
   const [scrolled, setScrolled] = useState(false);
   // حالات شريط البحث التفاعلي الجديد
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const { language, setLanguage, t } = useLanguage();
   const searchRef = useRef<HTMLDivElement | null>(null);
@@ -71,11 +57,12 @@ export default function Navbar({ onCartOpen, cartCount, wishlist, onToggleWishli
       return;
     }
 
-    const filtered = productsData.filter(item => 
-      item.name.toLowerCase().includes(query.toLowerCase()) ||
-      item.nameAr.includes(query) ||
-      item.color.includes(query)
-    );
+    const normalizedQuery = query.toLocaleLowerCase();
+    const filtered = products.flatMap((product) => {
+      const colors = product.colors?.length ? product.colors : [{ name: product.colorName || '', image: product.image }];
+      return colors.map((color) => ({ id: product.id, name: product.name, nameAr: product.nameAr, color: color.name, image: color.image || product.image }))
+        .filter((item) => [item.name, item.nameAr, item.color, product.category].some((value) => value.toLocaleLowerCase().includes(normalizedQuery)));
+    });
     setSearchResults(filtered);
   };
 
@@ -157,6 +144,7 @@ export default function Navbar({ onCartOpen, cartCount, wishlist, onToggleWishli
                           key={index}
                           href="#products"
                           onClick={() => {
+                            document.dispatchEvent(new CustomEvent('ora:select-product', { detail: item.id }));
                             setSearchOpen(false);
                             setSearchQuery('');
                             setSearchResults([]);

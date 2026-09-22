@@ -24,7 +24,7 @@ export const defaultProducts: Product[] = [
     [5, 'OFUQ', 'افـــــق', 'بني', 120, 180, 'New', 'https://res.cloudinary.com/lohinijb/image/upload/v1787280838/Generated_Image_August_21_2026_-_5_53AM.jpg', [['بني', 'https://res.cloudinary.com/lohinijb/image/upload/v1787280838/Generated_Image_August_21_2026_-_5_53AM.jpg']]],
     [6, 'TAYF', 'طيــــف', 'زيتي', 120, 180, 'Exclusive', 'https://res.cloudinary.com/lohinijb/image/upload/v1787280899/Generated_Image_August_21_2026_-_5_54AM.jpg', [['زيتي', 'https://res.cloudinary.com/lohinijb/image/upload/v1787280899/Generated_Image_August_21_2026_-_5_54AM.jpg']]],
   ].map(([id, name, nameAr, colorName, price, originalPrice, badge, image, colors]) => ({
-    id: id as number, name: name as string, nameAr: nameAr as string, category: 'طقم', colorName: colorName as string,
+    id: id as number, name: name as string, nameAr: nameAr as string, category: name as string, colorName: colorName as string,
     price: price as number, originalPrice: originalPrice as number, rating: 4.8, reviews: 500, badge: badge as string, image: image as string,
     images: (colors as [string, string][]).map(([color, img]) => ({ color, img })),
     sizes: (id === 4 || id === 5 || id === 6 ? ['One Size'] : ['S', 'M', 'L', 'XL']).map((name) => ({ name, available: true })),

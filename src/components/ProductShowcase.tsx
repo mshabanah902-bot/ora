@@ -35,6 +35,11 @@ const getProductSizes = (product: Product) => product.sizes?.length
   ? product.sizes
   : [{ name: 'One Size', available: true }];
 
+const getProductCategory = (product: Product) => {
+  const category = product.category?.trim();
+  return !category || category === 'طقم' || category.toLowerCase() === 'set' ? product.name : category;
+};
+
 // تم استخدام 'any' لتجاوز خطأ التايب سكربت المزعج
 function ProductCard({ product, index, onAdd, liked, onToggleWishlist, selected, onSelect }: { product: Product; index: number; onAdd: (product: Product, color: string, size: string) => void; liked: boolean; onToggleWishlist: (product: Product, color: string, size: string) => void; selected: boolean; onSelect: (productId: number) => void }) {  const { language, t } = useLanguage();
   const sizes = getProductSizes(product);
@@ -180,14 +185,37 @@ export default function ProductShowcase({ products: initialProducts, onAdd, wish
 
   const categories = useMemo(() => {
     const baseCategories = ['الكل', 'ATHER', 'NASAQ', 'SAHAB', 'WAQAR', 'OFUQ', 'TAYF'];
-    const dynamicCategories = (cloudProducts || []).map((p: any) => p.category).filter(Boolean);
+    const dynamicCategories = (cloudProducts || []).map(getProductCategory).filter(Boolean);
     return Array.from(new Set([...baseCategories, ...dynamicCategories]));
   }, [cloudProducts]);
 
   const { ref, inView } = useScrollReveal(0.05);
   const { language, t } = useLanguage();
+
+  useEffect(() => {
+    const selectCollection = (event: Event) => {
+      const title = (event as CustomEvent<string>).detail;
+      setActiveCategory(title || 'الكل');
+      document.getElementById('products')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    document.addEventListener('ora:select-collection', selectCollection);
+    return () => document.removeEventListener('ora:select-collection', selectCollection);
+  }, []);
+
+  useEffect(() => {
+    const selectProduct = (event: Event) => {
+      const productId = Number((event as CustomEvent<number>).detail);
+      const product = cloudProducts.find((item) => Number(item.id) === productId);
+      if (!product) return;
+      setActiveCategory('الكل');
+      setSelectedProductId(productId);
+      document.getElementById('products')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    document.addEventListener('ora:select-product', selectProduct);
+    return () => document.removeEventListener('ora:select-product', selectProduct);
+  }, [cloudProducts]);
   
-  const visible = (activeCategory === 'الكل' ? cloudProducts : cloudProducts.filter((product) => product.category === activeCategory))
+  const visible = (activeCategory === 'الكل' ? cloudProducts : cloudProducts.filter((product) => getProductCategory(product) === activeCategory))
     .slice()
     .sort((a, b) => Number(b.id) - Number(a.id));
 

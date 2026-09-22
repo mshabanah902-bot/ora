@@ -257,7 +257,7 @@ function ContentTab({ draft, update, onSave }: { draft: SiteContent; update: (co
   const setHero = (change: Partial<SiteContent['hero']>) => update({ ...draft, hero: { ...draft.hero, ...change } });
   const setStory = (change: Partial<SiteContent['story']>) => update({ ...draft, story: { ...draft.story, ...change } });
   const setCollection = (index: number, change: Partial<SiteContent['collections'][number]>) => update({ ...draft, collections: draft.collections.map((item, itemIndex) => itemIndex === index ? { ...item, ...change } : item) });
-  const imageField = (label: string, value: string, onChange: (value: string) => void) => <label className="block text-xs text-charcoal-500">{label}<input className="field mt-1" value={value} onChange={(e) => onChange(e.target.value)} placeholder="رابط الصورة أو ارفع صورة" /><input type="file" accept="image/*" className="field mt-1 text-xs" onChange={(e) => readImage(e.target.files?.[0], onChange)} /></label>;
+  const imageField = (label: string, value: string, onChange: (value: string) => void) => <label className="block text-xs text-charcoal-500">{label}<input className="field mt-1" value={value} onChange={(e) => onChange(e.target.value)} placeholder="رابط الصورة أو ارفع صورة" /><input type="file" accept="image/*" className="field mt-1 text-xs" onChange={(e) => readImage(e.target.files?.[0], onChange)} />{value && <img src={value} alt={label} className="mt-2 h-32 w-full rounded-xl object-cover" />}</label>;
   return <div className="space-y-5">
     <div className="rounded-2xl bg-white p-4 shadow-sm space-y-3">
       <h3 className="font-bold text-lg">محتوى الهيرو</h3>
