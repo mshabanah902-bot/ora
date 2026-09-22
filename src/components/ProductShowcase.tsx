@@ -41,7 +41,6 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { produ
   const { language, t } = useLanguage();
   const sizes = getProductSizes(product);
   
-  // تصحيح توافق الأنواع للألوان والصور
   const rawColors = (product as any).colors;
   const colors = rawColors?.length ? rawColors : product.images.map((item: any) => ({ name: item.color, available: true, image: item.img }));
   
@@ -128,25 +127,31 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { produ
           </div>
         </div>
 
-        {/* الألوان مع الحلقة الذهبية الثابتة عند الاختيار */}
+        {/* الألوان مع الحلقة الذهبية وعلامة X للون المخلص */}
         <div className="flex gap-1.5 mt-3">
           {colors.map((item: any) => { 
-            const colorAvailable = item.available && (!item.sizeAvailability || Object.values(item.sizeAvailability).some(Boolean)); 
+            const hasAnySizeAvailable = sizes.some((sizeItem: any) => 
+              item.sizeAvailability?.[sizeItem.name] ?? (item.available && sizeItem.available)
+            );
             const selected = selectedColor === item.name; 
+            
             return (
               <button 
                 key={item.name} 
-                disabled={!colorAvailable} 
                 onClick={() => { 
                   setSelectedColor(item.name); 
                   const nextSizes = sizesForColor(item.name);
                   setSize(nextSizes.find((entry) => entry.available)?.name || ''); 
                 }} 
-                className={`w-7 h-7 rounded-full transition-transform hover:scale-110 ${selected ? 'ring-2 ring-offset-2 ring-[#c59b52] scale-110' : 'border border-gray-200'} disabled:opacity-30 disabled:grayscale`} 
+                className={`relative w-7 h-7 rounded-full transition-transform hover:scale-110 ${selected ? 'ring-2 ring-offset-2 ring-[#c59b52] scale-110' : 'border border-gray-200'} ${!hasAnySizeAvailable ? 'opacity-60 grayscale' : ''}`} 
                 style={{ backgroundColor: getColorHex(item.name) }} 
                 aria-label={`لون ${item.name}`} 
                 title={item.name} 
-              />
+              >
+                {!hasAnySizeAvailable && (
+                  <span className="absolute inset-0 flex items-center justify-center text-red-600 font-bold text-xs bg-black/30 rounded-full">×</span>
+                )}
+              </button>
             ); 
           })}
         </div>
@@ -160,6 +165,7 @@ export default function ProductShowcase({ products, onAdd, wishlist, onToggleWis
   const { ref, inView } = useScrollReveal(0.05);
   const { language, t } = useLanguage();
   const visible = activeCategory === 'الكل' ? products : products.filter((product) => product.name === activeCategory);
+
   return (
     <section id="products" ref={ref} className="py-20 sm:py-28 bg-white relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -167,6 +173,7 @@ export default function ProductShowcase({ products, onAdd, wishlist, onToggleWis
           <span className="text-xs font-semibold text-ora-600 mb-3 block">{language === 'he' ? t('curated') : 'Curated For You'}</span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold">{language === 'he' ? t('collection') : <>تصفح <span className="gradient-text">التشكيلة</span></>}</h2>
         </motion.div>
+        
         <div className="flex flex-wrap gap-2 mb-10">
           {categories.map((category) => (
             <button key={category} onClick={() => setActiveCategory(category)} className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${activeCategory === category ? 'bg-ora-200 shadow-md' : 'bg-ora-100/60 hover:bg-ora-200'}`}>
@@ -174,6 +181,7 @@ export default function ProductShowcase({ products, onAdd, wishlist, onToggleWis
             </button>
           ))}
         </div>
+
         <AnimatePresence mode="wait">
           <motion.div key={activeCategory} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10">
             {visible.map((product, index) => (
