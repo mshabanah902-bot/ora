@@ -141,7 +141,7 @@ function ProductsTab({ draft, update, onDraftChange, onSave, readImages }: { dra
       colorName: colors[0].name,
       image: colors[0].image,
     };
-    const nextProducts = [...draft, product];
+    const nextProducts = [product, ...draft];
     onDraftChange(nextProducts);
     void onSave(nextProducts);
     setNewProduct(createEmptyProduct(nextId + 1));

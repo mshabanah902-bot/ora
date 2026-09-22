@@ -43,8 +43,9 @@ export default function App() {
   useEffect(() => {
     void loadProducts().then((data) => {
       if (!data.length) return;
-      setProducts(data);
-      localStorage.setItem('ora-products', JSON.stringify(data));
+      const ordered = [...data].sort((a, b) => Number(b.id) - Number(a.id));
+      setProducts(ordered);
+      localStorage.setItem('ora-products', JSON.stringify(ordered));
     }).catch(() => undefined);
     void loadSiteContent().then((data) => setSiteContent(mergeSiteContent(data))).catch(() => undefined);
   }, []);
@@ -69,9 +70,10 @@ export default function App() {
   };
   const changeQuantity = (lineId: string, delta: number) => setCart((items) => items.map((item) => item.lineId === lineId ? { ...item, quantity: item.quantity + delta } : item).filter((item) => item.quantity > 0));
   const saveProducts = async (next: Product[]) => {
-    setProducts(next);
-    localStorage.setItem('ora-products', JSON.stringify(next));
-    await persistProducts(next);
+    const ordered = [...next].sort((a, b) => Number(b.id) - Number(a.id));
+    setProducts(ordered);
+    localStorage.setItem('ora-products', JSON.stringify(ordered));
+    await persistProducts(ordered);
   };
   const saveSiteContent = async (next: SiteContent) => { const merged = mergeSiteContent(next); await persistSiteContent(merged); setSiteContent(merged); };
   const toggleWishlist = (product: Product, selectedColor: string, selectedSize: string) => setWishlist((current) => {

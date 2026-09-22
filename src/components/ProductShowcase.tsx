@@ -182,7 +182,9 @@ export default function ProductShowcase({ products: initialProducts, onAdd, wish
   const { ref, inView } = useScrollReveal(0.05);
   const { language, t } = useLanguage();
   
-  const visible = activeCategory === 'الكل' ? cloudProducts : cloudProducts.filter((product) => product.category === activeCategory);
+  const visible = (activeCategory === 'الكل' ? cloudProducts : cloudProducts.filter((product) => product.category === activeCategory))
+    .slice()
+    .sort((a, b) => Number(b.id) - Number(a.id));
 
   return (
     <section id="products" ref={ref} className="py-20 sm:py-28 bg-white relative">
