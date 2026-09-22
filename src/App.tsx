@@ -13,6 +13,8 @@ import { loadProducts, loadSiteContent, saveProducts as persistProducts, saveSit
 import { defaultSiteContent, type SiteContent } from './data/siteContent';
 
 export type WishlistItem = Product & { selectedColor: string; selectedSize: string };
+const normalizeProducts = (items: Product[]) => items.map((product) => ({ ...product, category: product.name.trim() }));
+
 function readStored<T>(key: string, fallback: T): T {
   try {
     const value = localStorage.getItem(key);
@@ -35,7 +37,7 @@ const mergeSiteContent = (value: Partial<SiteContent> | null | undefined): SiteC
 });
 
 export default function App() {
-  const [products, setProducts] = useState<Product[]>(() => readStored<Product[]>('ora-products', defaultProducts));
+  const [products, setProducts] = useState<Product[]>(() => normalizeProducts(readStored<Product[]>('ora-products', defaultProducts)));
   const [cart, setCart] = useState<CartItem[]>(() => readStored<CartItem[]>('ora-cart', []));
   const [cartOpen, setCartOpen] = useState(false);
   const [wishlist, setWishlist] = useState<WishlistItem[]>(() => readStored<WishlistItem[]>('ora-wishlist', []));
@@ -43,7 +45,7 @@ export default function App() {
   useEffect(() => {
     void loadProducts().then((data) => {
       if (!data.length) return;
-      const ordered = [...data].sort((a, b) => Number(b.id) - Number(a.id));
+      const ordered = normalizeProducts([...data].sort((a, b) => Number(b.id) - Number(a.id)));
       setProducts(ordered);
       localStorage.setItem('ora-products', JSON.stringify(ordered));
     }).catch(() => undefined);
@@ -70,7 +72,7 @@ export default function App() {
   };
   const changeQuantity = (lineId: string, delta: number) => setCart((items) => items.map((item) => item.lineId === lineId ? { ...item, quantity: item.quantity + delta } : item).filter((item) => item.quantity > 0));
   const saveProducts = async (next: Product[]) => {
-    const ordered = [...next].sort((a, b) => Number(b.id) - Number(a.id));
+    const ordered = normalizeProducts([...next].sort((a, b) => Number(b.id) - Number(a.id)));
     setProducts(ordered);
     localStorage.setItem('ora-products', JSON.stringify(ordered));
     await persistProducts(ordered);

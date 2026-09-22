@@ -36,8 +36,7 @@ const getProductSizes = (product: Product) => product.sizes?.length
   : [{ name: 'One Size', available: true }];
 
 const getProductCategory = (product: Product) => {
-  const category = product.category?.trim();
-  return !category || category === 'طقم' || category.toLowerCase() === 'set' ? product.name : category;
+  return product.name?.trim() || '';
 };
 
 // تم استخدام 'any' لتجاوز خطأ التايب سكربت المزعج
