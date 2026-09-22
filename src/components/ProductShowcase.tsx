@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Heart, ShoppingBag, Star } from 'lucide-react';
 import { useScrollReveal } from '../hooks/useScrollReveal';
@@ -13,10 +13,24 @@ const getProductSizes = (product: Product) => product.sizes?.length
 
 function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { product: Product; index: number; onAdd: (product: Product) => void; liked: boolean; onToggleWishlist: (product: Product, color: string, size: string) => void }) {
   const { language, t } = useLanguage();
-  const [color, setColor] = useState(product.images[0]);
   const sizes = getProductSizes(product);
   const colors = product.colors?.length ? product.colors : product.images.map((item) => ({ name: item.color, available: true, image: item.img }));
-  const sizesForColor = (selected = color.color) => {
+  const [selectedColor, setSelectedColor] = useState(colors[0]?.name || '');
+  const activeColor = colors.find((item) => item.name === selectedColor) || colors[0];
+  const colorImages = activeColor?.images?.length
+    ? activeColor.images
+    : activeColor?.image
+      ? [activeColor.image]
+      : product.images.filter((item) => item.color === selectedColor).map((item) => item.img);
+  const [imageIndex, setImageIndex] = useState(0);
+  useEffect(() => setImageIndex(0), [selectedColor]);
+  useEffect(() => {
+    if (colorImages.length < 2) return;
+    const timer = window.setInterval(() => setImageIndex((current) => (current + 1) % colorImages.length), 2800);
+    return () => window.clearInterval(timer);
+  }, [colorImages.length, selectedColor]);
+  const colorImage = colorImages[imageIndex] || product.image;
+  const sizesForColor = (selected = selectedColor) => {
     const selectedColor = colors.find((item) => item.name === selected);
     return sizes.map((item) => ({ ...item, available: selectedColor?.sizeAvailability?.[item.name] ?? (selectedColor?.available && item.available) }));
   };
@@ -25,18 +39,18 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist }: { produ
   return (
     <motion.div layout initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} className="group">
       <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-ora-100 mb-4">
-        <img src={color.img} alt={`${product.name} - ${color.color}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
+        <img src={colorImage} alt={`${product.name} - ${activeColor?.name || ''}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
         <span className="absolute top-3 left-3 px-3 py-1 bg-white/90 text-[10px] font-bold rounded-full">{product.badge}</span>
-        <button onClick={() => onToggleWishlist(product, color.color, size)} className="absolute top-3 right-3 w-10 h-10 rounded-full bg-white/95 shadow-md flex items-center justify-center transition-all hover:scale-110" aria-label={liked ? 'إزالة من المفضلة' : 'إضافة للمفضلة'}>
+        <button onClick={() => onToggleWishlist(product, selectedColor, size)} className="absolute top-3 right-3 w-10 h-10 rounded-full bg-white/95 shadow-md flex items-center justify-center transition-all hover:scale-110" aria-label={liked ? 'إزالة من المفضلة' : 'إضافة للمفضلة'}>
           <Heart className={`w-4 h-4 ${liked ? 'fill-red-500 text-red-500' : ''}`} />
         </button>
       </div>
       <div className="px-1">
         <div className="flex items-center justify-between mb-1"><h3 className="font-semibold text-sm">{product.name}</h3><span className="flex items-center gap-1 text-xs"><Star className="w-3 h-3 fill-amber-400 text-amber-400" />{product.rating}</span></div>
-        <p className="text-xs text-charcoal-400 mb-2">{product.nameAr} - لون {color.color}</p>
+        <p className="text-xs text-charcoal-400 mb-2">{product.nameAr} - لون {activeColor?.name || ''}</p>
         <div className="flex items-center justify-between gap-2"><div className="flex items-center gap-2"><span className="text-base font-bold">₪{product.price}</span><span className="text-xs text-charcoal-400 line-through">₪{product.originalPrice}</span></div><button disabled={!size || !colors.some((item) => item.available)} onClick={() => onAdd(product)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2E3220] px-4 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:bg-ora-700 hover:-translate-y-0.5 active:scale-95 whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"><ShoppingBag className="w-4 h-4" />{language === 'he' ? t('addToCart') : 'أضف للسلة'}</button></div>
         <div className="mt-3"><span className="text-xs text-charcoal-500">{language === 'he' ? t('availableSizes') : 'النمر المتوفرة:'}</span><div className="flex flex-wrap gap-1.5 mt-1">{colorSizes.map((item) => <button key={item.name} disabled={!item.available} onClick={() => setSize(item.name)} className={`min-w-8 px-2 py-1 rounded-lg border text-xs transition-all ${size === item.name ? 'border-charcoal-900 bg-charcoal-900 text-white' : 'border-charcoal-200 bg-white'} disabled:opacity-35 disabled:line-through`} aria-label={`${language === 'he' ? t('size') : 'نمرة'} ${item.name}`}>{item.name}</button>)}</div></div>
-        <div className="flex gap-1.5 mt-3">{colors.map((item) => { const image = { color: item.name, img: item.image }; const colorAvailable = item.available && (!item.sizeAvailability || Object.values(item.sizeAvailability).some(Boolean)); return <button key={item.name} disabled={!colorAvailable} onClick={() => { setColor(image); setSize(sizesForColor(item.name).find((entry) => entry.available)?.name || ''); }} className={`w-7 h-7 rounded-full border-2 transition-transform hover:scale-110 ${color.color === item.name ? 'border-charcoal-900 scale-110' : 'border-white'} disabled:opacity-30 disabled:grayscale`} style={{ backgroundColor: item.name === 'ابيض' ? '#f5f2ed' : item.name === 'اسود' ? '#111' : item.name === 'كحلي' ? '#1d2d4b' : item.name === 'زيتي' ? '#65705a' : '#a98a6a' }} aria-label={`لون ${item.name}`} />; })}</div>
+        <div className="flex gap-1.5 mt-3">{colors.map((item) => { const colorAvailable = item.available && (!item.sizeAvailability || Object.values(item.sizeAvailability).some(Boolean)); return <button key={item.name} disabled={!colorAvailable} onClick={() => { setSelectedColor(item.name); setSize(sizesForColor(item.name).find((entry) => entry.available)?.name || ''); }} className={`w-7 h-7 rounded-full border-2 transition-transform hover:scale-110 ${selectedColor === item.name ? 'border-charcoal-900 scale-110' : 'border-white'} disabled:opacity-30 disabled:grayscale`} style={{ backgroundColor: item.name === 'ابيض' ? '#f5f2ed' : item.name === 'اسود' ? '#111' : item.name === 'كحلي' ? '#1d2d4b' : item.name === 'زيتي' ? '#65705a' : '#a98a6a' }} aria-label={`لون ${item.name}`} />; })}</div>
       </div>
     </motion.div>
   );
