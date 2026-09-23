@@ -13,7 +13,36 @@ import { loadProducts, loadSiteContent, saveProducts as persistProducts, saveSit
 import { defaultSiteContent, type SiteContent } from './data/siteContent';
 
 export type WishlistItem = Product & { selectedColor: string; selectedSize: string };
-const normalizeProducts = (items: Product[]) => items.map((product) => ({ ...product, category: product.name.trim() }));
+const normalizeProducts = (items: unknown): Product[] => {
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .filter((item): item is Partial<Product> => Boolean(item && typeof item === 'object'))
+    .map((product) => {
+      const images = Array.isArray(product.images)
+        ? product.images.filter((image): image is { color: string; img: string } => Boolean(image?.img))
+        : [];
+      const colors = Array.isArray(product.colors)
+        ? product.colors.filter((color): color is Product['colors'][number] => Boolean(color?.name))
+        : images.map((image) => ({ name: image.color, available: true, image: image.img }));
+      const image = product.image || images[0]?.img || colors[0]?.image || '';
+
+      return {
+        ...product,
+        id: Number(product.id),
+        name: String(product.name || `Product ${product.id || ''}`).trim(),
+        nameAr: String(product.nameAr || product.name || '').trim(),
+        category: String(product.name || '').trim(),
+        image,
+        images: images.length ? images : image ? [{ color: product.colorName || '', img: image }] : [],
+        colors,
+        sizes: Array.isArray(product.sizes) && product.sizes.length
+          ? product.sizes
+          : [{ name: 'One Size', available: true }],
+      } as Product;
+    })
+    .filter((product) => Number.isFinite(product.id) && product.image);
+};
 
 function readLegacyProducts() {
   try {
@@ -46,7 +75,10 @@ const mergeSiteContent = (value: Partial<SiteContent> | null | undefined): SiteC
 });
 
 export default function App() {
-  const [products, setProducts] = useState<Product[]>(() => normalizeProducts(readStored<Product[]>('ora-products-cache', defaultProducts)));
+  const [products, setProducts] = useState<Product[]>(() => {
+    const cached = normalizeProducts(readStored<unknown>('ora-products-cache', defaultProducts));
+    return cached.length ? cached : defaultProducts;
+  });
   const [cart, setCart] = useState<CartItem[]>(() => readStored<CartItem[]>('ora-cart', []));
   const [cartOpen, setCartOpen] = useState(false);
   const [wishlist, setWishlist] = useState<WishlistItem[]>(() => readStored<WishlistItem[]>('ora-wishlist', []));
