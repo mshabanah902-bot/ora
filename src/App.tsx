@@ -15,15 +15,6 @@ import { defaultSiteContent, type SiteContent } from './data/siteContent';
 export type WishlistItem = Product & { selectedColor: string; selectedSize: string };
 const normalizeProducts = (items: Product[]) => items.map((product) => ({ ...product, category: product.name.trim() }));
 
-function readStored<T>(key: string, fallback: T): T {
-  try {
-    const value = localStorage.getItem(key);
-    return value ? JSON.parse(value) as T : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
 const mergeSiteContent = (value: Partial<SiteContent> | null | undefined): SiteContent => ({
   ...defaultSiteContent,
   ...value,
@@ -37,32 +28,20 @@ const mergeSiteContent = (value: Partial<SiteContent> | null | undefined): SiteC
 });
 
 export default function App() {
-  const [products, setProducts] = useState<Product[]>(() => normalizeProducts(readStored<Product[]>('ora-products', defaultProducts)));
-  const [cart, setCart] = useState<CartItem[]>(() => readStored<CartItem[]>('ora-cart', []));
+  const [products, setProducts] = useState<Product[]>(() => normalizeProducts(defaultProducts));
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
-  const [wishlist, setWishlist] = useState<WishlistItem[]>(() => readStored<WishlistItem[]>('ora-wishlist', []));
-  const [siteContent, setSiteContent] = useState<SiteContent>(() => mergeSiteContent(readStored<Partial<SiteContent>>('ora-site-content', {})));
+  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
+  const [siteContent, setSiteContent] = useState<SiteContent>(() => mergeSiteContent({}));
   useEffect(() => {
     void loadProducts().then((data) => {
-      const storedProducts = readStored<Product[]>('ora-products', []);
-      const productsById = new Map(data.map((product) => [product.id, product]));
-      storedProducts.forEach((product) => {
-        if (!productsById.has(product.id)) productsById.set(product.id, product);
-      });
-      const source = productsById.size ? [...productsById.values()] : defaultProducts;
-      const ordered = normalizeProducts([...source].sort((a, b) => Number(b.id) - Number(a.id)));
-      setProducts(ordered);
-      localStorage.setItem('ora-products', JSON.stringify(ordered));
-      if (ordered.length > data.length) void persistProducts(ordered).catch(() => undefined);
+      if (data.length) setProducts(normalizeProducts([...data].sort((a, b) => Number(b.id) - Number(a.id))));
     }).catch(() => undefined);
     void loadSiteContent().then((data) => {
       const merged = mergeSiteContent(data);
       setSiteContent(merged);
-      localStorage.setItem('ora-site-content', JSON.stringify(merged));
     }).catch(() => undefined);
   }, []);
-  useEffect(() => { localStorage.setItem('ora-cart', JSON.stringify(cart)); }, [cart]);
-  useEffect(() => { localStorage.setItem('ora-wishlist', JSON.stringify(wishlist)); }, [wishlist]);
   const addToCart = (product: Product, selectedColor: string, selectedSize: string) => {
     const selectedColorData = product.colors?.find((color) => color.name === selectedColor);
     const selectedSizeData = product.sizes?.find((size) => size.name === selectedSize);
@@ -87,13 +66,11 @@ export default function App() {
     const saved = await persistProducts(ordered);
     const savedOrdered = normalizeProducts([...saved].sort((a, b) => Number(b.id) - Number(a.id)));
     setProducts(savedOrdered);
-    localStorage.setItem('ora-products', JSON.stringify(savedOrdered));
   };
   const saveSiteContent = async (next: SiteContent) => {
     const merged = mergeSiteContent(next);
     await persistSiteContent(merged);
     setSiteContent(merged);
-    localStorage.setItem('ora-site-content', JSON.stringify(merged));
   };
   const toggleWishlist = (product: Product, selectedColor: string, selectedSize: string) => setWishlist((current) => {
     const next = current.some((item) => item.id === product.id)
