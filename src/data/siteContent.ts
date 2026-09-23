@@ -36,9 +36,9 @@ export const defaultSiteContent: SiteContent = {
   ],
   hero: {
     eyebrow: 'New ORA Collection',
-    titleLine1: 'إرتــــــــــــــــدِ',
-    titleLine2: 'جوهـــــــــــــــر',
-    titleLine3: 'الغــــــــــــــــد',
+    titleLine1: 'ارتدِ',
+    titleLine2: 'جوهر',
+    titleLine3: 'الغد',
     description: 'تجمع "أورا" بين البساطة العصرية والحرفية المتقنة؛ فكل قطعة تمثل تعبيراً فريداً، صُممت خصيصاً لمن يمضون في حياتهم بخطوات واثقة وهادفة.',
     primaryButton: 'Explore Collection',
     secondaryButton: 'Watch Lookbook',

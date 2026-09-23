@@ -35,9 +35,9 @@ export default function Hero({ content }: { content: SiteContent['hero'] }) {
   /* التعديل: حذفنا كلاس text-balance وكلاس tracking-tight تماماً وأضفنا w-full text-right */
   className="text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-palestine-bold leading-[1.5] sm:leading-[1.4] text-right w-full block overflow-visible"
 >
-  <span className="text-charcoal-900 block whitespace-nowrap">{content.titleLine1}</span>
-  <span className="gradient-text block mt-2 whitespace-nowrap">{content.titleLine2}</span>
-  <span className="text-charcoal-900 block mt-2 whitespace-nowrap">{content.titleLine3}</span>
+  <span className="text-charcoal-900 block whitespace-normal">{content.titleLine1}</span>
+  <span className="gradient-text block mt-2 whitespace-normal">{content.titleLine2}</span>
+  <span className="text-charcoal-900 block mt-2 whitespace-normal">{content.titleLine3}</span>
 </motion.h1>
             <motion.p
   initial={{ opacity: 0, y: 20 }}
