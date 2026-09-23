@@ -24,6 +24,15 @@ function readLegacyProducts() {
   }
 }
 
+function readStored<T>(key: string, fallback: T): T {
+  try {
+    const value = localStorage.getItem(key);
+    return value ? JSON.parse(value) as T : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 const mergeSiteContent = (value: Partial<SiteContent> | null | undefined): SiteContent => ({
   ...defaultSiteContent,
   ...value,
@@ -37,11 +46,23 @@ const mergeSiteContent = (value: Partial<SiteContent> | null | undefined): SiteC
 });
 
 export default function App() {
-  const [products, setProducts] = useState<Product[]>(() => normalizeProducts(defaultProducts));
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [products, setProducts] = useState<Product[]>(() => normalizeProducts(readStored<Product[]>('ora-products-cache', defaultProducts)));
+  const [cart, setCart] = useState<CartItem[]>(() => readStored<CartItem[]>('ora-cart', []));
   const [cartOpen, setCartOpen] = useState(false);
-  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
-  const [siteContent, setSiteContent] = useState<SiteContent>(() => mergeSiteContent({}));
+  const [wishlist, setWishlist] = useState<WishlistItem[]>(() => readStored<WishlistItem[]>('ora-wishlist', []));
+  const [siteContent, setSiteContent] = useState<SiteContent>(() => mergeSiteContent(readStored<Partial<SiteContent>>('ora-site-content-cache', {})));
+  useEffect(() => {
+    localStorage.setItem('ora-cart', JSON.stringify(cart));
+  }, [cart]);
+  useEffect(() => {
+    localStorage.setItem('ora-wishlist', JSON.stringify(wishlist));
+  }, [wishlist]);
+  useEffect(() => {
+    localStorage.setItem('ora-products-cache', JSON.stringify(products));
+  }, [products]);
+  useEffect(() => {
+    localStorage.setItem('ora-site-content-cache', JSON.stringify(siteContent));
+  }, [siteContent]);
   useEffect(() => {
     void loadProducts().then((data) => {
       const legacyProducts = readLegacyProducts();
@@ -83,14 +104,15 @@ export default function App() {
   const saveProducts = async (next: Product[]) => {
     if (!next.length) throw new Error('لا يمكن حفظ قائمة منتجات فارغة');
     const ordered = normalizeProducts([...next].sort((a, b) => Number(b.id) - Number(a.id)));
+    setProducts(ordered);
     const saved = await persistProducts(ordered);
     const savedOrdered = normalizeProducts([...saved].sort((a, b) => Number(b.id) - Number(a.id)));
     setProducts(savedOrdered);
   };
   const saveSiteContent = async (next: SiteContent) => {
     const merged = mergeSiteContent(next);
-    await persistSiteContent(merged);
     setSiteContent(merged);
+    await persistSiteContent(merged);
   };
   const toggleWishlist = (product: Product, selectedColor: string, selectedSize: string) => setWishlist((current) => {
     const next = current.some((item) => item.id === product.id)
