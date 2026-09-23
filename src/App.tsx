@@ -44,10 +44,12 @@ export default function App() {
   const [siteContent, setSiteContent] = useState<SiteContent>(() => mergeSiteContent(readStored<Partial<SiteContent>>('ora-site-content', {})));
   useEffect(() => {
     void loadProducts().then((data) => {
-      if (!data.length) return;
-      const ordered = normalizeProducts([...data].sort((a, b) => Number(b.id) - Number(a.id)));
+      const storedProducts = readStored<Product[]>('ora-products', []);
+      const source = data.length ? data : (storedProducts.length ? storedProducts : defaultProducts);
+      const ordered = normalizeProducts([...source].sort((a, b) => Number(b.id) - Number(a.id)));
       setProducts(ordered);
       localStorage.setItem('ora-products', JSON.stringify(ordered));
+      if (!data.length) void persistProducts(ordered).catch(() => undefined);
     }).catch(() => undefined);
     void loadSiteContent().then((data) => {
       const merged = mergeSiteContent(data);
@@ -76,6 +78,7 @@ export default function App() {
   };
   const changeQuantity = (lineId: string, delta: number) => setCart((items) => items.map((item) => item.lineId === lineId ? { ...item, quantity: item.quantity + delta } : item).filter((item) => item.quantity > 0));
   const saveProducts = async (next: Product[]) => {
+    if (!next.length) throw new Error('لا يمكن حفظ قائمة منتجات فارغة');
     const ordered = normalizeProducts([...next].sort((a, b) => Number(b.id) - Number(a.id)));
     await persistProducts(ordered);
     setProducts(ordered);
