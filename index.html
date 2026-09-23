@@ -9,7 +9,15 @@
     <title>اورا ORA — أورا</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <main style="min-height:100vh;display:grid;place-items:center;padding:24px;background:#faf8f5;color:#1e1f22;font-family:system-ui,sans-serif;text-align:center;direction:rtl">
+        <div>
+          <strong style="font-size:32px;letter-spacing:4px">ORA</strong>
+          <p style="margin:16px 0;color:#60646c">جاري تحميل المتجر...</p>
+          <button onclick="location.reload()" style="border:1px solid #a98a6a;border-radius:999px;padding:10px 22px;background:white;color:#674f42;font-weight:700">إعادة المحاولة</button>
+        </div>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -64,14 +64,18 @@ function readStored<T>(key: string, fallback: T): T {
 
 const mergeSiteContent = (value: Partial<SiteContent> | null | undefined): SiteContent => ({
   ...defaultSiteContent,
-  ...value,
-  hero: { ...defaultSiteContent.hero, ...(value?.hero || {}) },
+  ...(value && typeof value === 'object' ? value : {}),
+  hero: { ...defaultSiteContent.hero, ...(value?.hero && typeof value.hero === 'object' ? value.hero : {}) },
   story: {
     ...defaultSiteContent.story,
-    ...(value?.story || {}),
-    features: value?.story?.features || defaultSiteContent.story.features,
+    ...(value?.story && typeof value.story === 'object' ? value.story : {}),
+    features: Array.isArray(value?.story?.features) && value.story.features.length
+      ? value.story.features
+      : defaultSiteContent.story.features,
   },
-  collections: value?.collections?.length ? value.collections : defaultSiteContent.collections,
+  collections: Array.isArray(value?.collections) && value.collections.length
+    ? value.collections
+    : defaultSiteContent.collections,
 });
 
 export default function App() {
