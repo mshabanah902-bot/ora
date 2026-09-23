@@ -13,7 +13,6 @@ import { loadProducts, loadSiteContent, saveProducts as persistProducts, saveSit
 import { defaultSiteContent, type SiteContent } from './data/siteContent';
 
 export type WishlistItem = Product & { selectedColor: string; selectedSize: string };
-const removeTatweel = (value: unknown) => String(value || '').replace(/\u0640/g, '');
 
 const normalizeProducts = (items: unknown): Product[] => {
   if (!Array.isArray(items)) return [];
@@ -33,7 +32,7 @@ const normalizeProducts = (items: unknown): Product[] => {
         ...product,
         id: Number(product.id),
         name: String(product.name || `Product ${product.id || ''}`).trim(),
-        nameAr: removeTatweel(String(product.nameAr || product.name || '').trim()),
+        nameAr: String(product.nameAr || product.name || '').trim(),
         category: String(product.name || '').trim(),
         image,
         images: images.length ? images : image ? [{ color: product.colorName || '', img: image }] : [],
@@ -64,30 +63,36 @@ function readStored<T>(key: string, fallback: T): T {
   }
 }
 
+function writeStored(key: string, value: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Storage can be unavailable in private browsing or restricted webviews.
+  }
+}
+
+function removeStored(key: string) {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Storage can be unavailable in private browsing or restricted webviews.
+  }
+}
+
 const mergeSiteContent = (value: Partial<SiteContent> | null | undefined): SiteContent => ({
   ...defaultSiteContent,
   ...(value && typeof value === 'object' ? value : {}),
-  hero: {
-    ...defaultSiteContent.hero,
-    ...(value?.hero && typeof value.hero === 'object' ? value.hero : {}),
-    titleLine1: removeTatweel(String(value?.hero?.titleLine1 || defaultSiteContent.hero.titleLine1)),
-    titleLine2: removeTatweel(String(value?.hero?.titleLine2 || defaultSiteContent.hero.titleLine2)),
-    titleLine3: removeTatweel(String(value?.hero?.titleLine3 || defaultSiteContent.hero.titleLine3)),
-  },
+  hero: { ...defaultSiteContent.hero, ...(value?.hero && typeof value.hero === 'object' ? value.hero : {}) },
   story: {
     ...defaultSiteContent.story,
     ...(value?.story && typeof value.story === 'object' ? value.story : {}),
-    highlight: removeTatweel(String(value?.story?.highlight || defaultSiteContent.story.highlight)),
     features: Array.isArray(value?.story?.features) && value.story.features.length
       ? value.story.features
       : defaultSiteContent.story.features,
   },
-  collections: (Array.isArray(value?.collections) && value.collections.length
+  collections: Array.isArray(value?.collections) && value.collections.length
     ? value.collections
-    : defaultSiteContent.collections).map((collection) => ({
-      ...collection,
-      titleAr: removeTatweel(collection.titleAr || collection.title),
-    })),
+    : defaultSiteContent.collections,
 });
 
 export default function App() {
@@ -100,16 +105,16 @@ export default function App() {
   const [wishlist, setWishlist] = useState<WishlistItem[]>(() => readStored<WishlistItem[]>('ora-wishlist', []));
   const [siteContent, setSiteContent] = useState<SiteContent>(() => mergeSiteContent(readStored<Partial<SiteContent>>('ora-site-content-cache', {})));
   useEffect(() => {
-    localStorage.setItem('ora-cart', JSON.stringify(cart));
+    writeStored('ora-cart', cart);
   }, [cart]);
   useEffect(() => {
-    localStorage.setItem('ora-wishlist', JSON.stringify(wishlist));
+    writeStored('ora-wishlist', wishlist);
   }, [wishlist]);
   useEffect(() => {
-    localStorage.setItem('ora-products-cache', JSON.stringify(products));
+    writeStored('ora-products-cache', products);
   }, [products]);
   useEffect(() => {
-    localStorage.setItem('ora-site-content-cache', JSON.stringify(siteContent));
+    writeStored('ora-site-content-cache', siteContent);
   }, [siteContent]);
   useEffect(() => {
     void loadProducts().then((data) => {
@@ -121,9 +126,9 @@ export default function App() {
       const restored = normalizeProducts([...productsById.values()].sort((a, b) => Number(b.id) - Number(a.id)));
       if (restored.length) setProducts(restored);
       if (restored.length > data.length) {
-        void persistProducts(restored).then(() => localStorage.removeItem('ora-products')).catch(() => undefined);
+        void persistProducts(restored).then(() => removeStored('ora-products')).catch(() => undefined);
       } else if (legacyProducts.length) {
-        localStorage.removeItem('ora-products');
+        removeStored('ora-products');
       }
     }).catch(() => undefined);
     void loadSiteContent().then((data) => {
