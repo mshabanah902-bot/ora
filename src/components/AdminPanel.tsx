@@ -64,7 +64,7 @@ const save = async (productsToSave?: Product[]) => {
     } catch (error) {
       console.error('تعذر حفظ المنتجات في Supabase', error);
       setSaveError('تعذر حفظ المنتجات في قاعدة البيانات. حاول مرة أخرى.');
-      return;
+      throw error;
     }
     if (!productsToSave) setOpen(false);
   };
@@ -126,7 +126,7 @@ function ProductsTab({ draft, update, onDraftChange, onSave, readImages }: { dra
     images: colors.flatMap((color) => (color.images?.length ? color.images : [color.image]).filter(Boolean).map((image) => ({ color: color.name, img: image }))),
     image: colors.find((color) => color.image)?.image || newProduct.image,
   });
-  const addProduct = () => {
+  const addProduct = async () => {
     if (!newProduct.name.trim() || !newProduct.nameAr.trim() || !newProduct.colors.some((color) => color.name.trim() && color.image)) return;
     const colors = newProduct.colors
       .filter((color) => color.name.trim() && color.image)
@@ -144,8 +144,12 @@ function ProductsTab({ draft, update, onDraftChange, onSave, readImages }: { dra
       image: colors[0].image,
     };
     const nextProducts = [product, ...draft];
-    onDraftChange(nextProducts);
-    void onSave(nextProducts);
+    try {
+      await onSave(nextProducts);
+      onDraftChange(nextProducts);
+    } catch {
+      return;
+    }
     setNewProduct(createEmptyProduct(nextId + 1));
   };
 

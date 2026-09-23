@@ -41,7 +41,7 @@ export default function App() {
   const [cart, setCart] = useState<CartItem[]>(() => readStored<CartItem[]>('ora-cart', []));
   const [cartOpen, setCartOpen] = useState(false);
   const [wishlist, setWishlist] = useState<WishlistItem[]>(() => readStored<WishlistItem[]>('ora-wishlist', []));
-  const [siteContent, setSiteContent] = useState<SiteContent>(defaultSiteContent);
+  const [siteContent, setSiteContent] = useState<SiteContent>(() => mergeSiteContent(readStored<Partial<SiteContent>>('ora-site-content', {})));
   useEffect(() => {
     void loadProducts().then((data) => {
       if (!data.length) return;
@@ -49,7 +49,11 @@ export default function App() {
       setProducts(ordered);
       localStorage.setItem('ora-products', JSON.stringify(ordered));
     }).catch(() => undefined);
-    void loadSiteContent().then((data) => setSiteContent(mergeSiteContent(data))).catch(() => undefined);
+    void loadSiteContent().then((data) => {
+      const merged = mergeSiteContent(data);
+      setSiteContent(merged);
+      localStorage.setItem('ora-site-content', JSON.stringify(merged));
+    }).catch(() => undefined);
   }, []);
   useEffect(() => { localStorage.setItem('ora-cart', JSON.stringify(cart)); }, [cart]);
   useEffect(() => { localStorage.setItem('ora-wishlist', JSON.stringify(wishlist)); }, [wishlist]);
@@ -73,11 +77,16 @@ export default function App() {
   const changeQuantity = (lineId: string, delta: number) => setCart((items) => items.map((item) => item.lineId === lineId ? { ...item, quantity: item.quantity + delta } : item).filter((item) => item.quantity > 0));
   const saveProducts = async (next: Product[]) => {
     const ordered = normalizeProducts([...next].sort((a, b) => Number(b.id) - Number(a.id)));
+    await persistProducts(ordered);
     setProducts(ordered);
     localStorage.setItem('ora-products', JSON.stringify(ordered));
-    await persistProducts(ordered);
   };
-  const saveSiteContent = async (next: SiteContent) => { const merged = mergeSiteContent(next); await persistSiteContent(merged); setSiteContent(merged); };
+  const saveSiteContent = async (next: SiteContent) => {
+    const merged = mergeSiteContent(next);
+    await persistSiteContent(merged);
+    setSiteContent(merged);
+    localStorage.setItem('ora-site-content', JSON.stringify(merged));
+  };
   const toggleWishlist = (product: Product, selectedColor: string, selectedSize: string) => setWishlist((current) => {
     const next = current.some((item) => item.id === product.id)
       ? current.filter((item) => item.id !== product.id)
