@@ -13,6 +13,8 @@ import { loadProducts, loadSiteContent, saveProducts as persistProducts, saveSit
 import { defaultSiteContent, type SiteContent } from './data/siteContent';
 
 export type WishlistItem = Product & { selectedColor: string; selectedSize: string };
+const removeTatweel = (value: unknown) => String(value || '').replace(/\u0640/g, '');
+
 const normalizeProducts = (items: unknown): Product[] => {
   if (!Array.isArray(items)) return [];
 
@@ -31,7 +33,7 @@ const normalizeProducts = (items: unknown): Product[] => {
         ...product,
         id: Number(product.id),
         name: String(product.name || `Product ${product.id || ''}`).trim(),
-        nameAr: String(product.nameAr || product.name || '').trim(),
+        nameAr: removeTatweel(String(product.nameAr || product.name || '').trim()),
         category: String(product.name || '').trim(),
         image,
         images: images.length ? images : image ? [{ color: product.colorName || '', img: image }] : [],
@@ -65,17 +67,27 @@ function readStored<T>(key: string, fallback: T): T {
 const mergeSiteContent = (value: Partial<SiteContent> | null | undefined): SiteContent => ({
   ...defaultSiteContent,
   ...(value && typeof value === 'object' ? value : {}),
-  hero: { ...defaultSiteContent.hero, ...(value?.hero && typeof value.hero === 'object' ? value.hero : {}) },
+  hero: {
+    ...defaultSiteContent.hero,
+    ...(value?.hero && typeof value.hero === 'object' ? value.hero : {}),
+    titleLine1: removeTatweel(String(value?.hero?.titleLine1 || defaultSiteContent.hero.titleLine1)),
+    titleLine2: removeTatweel(String(value?.hero?.titleLine2 || defaultSiteContent.hero.titleLine2)),
+    titleLine3: removeTatweel(String(value?.hero?.titleLine3 || defaultSiteContent.hero.titleLine3)),
+  },
   story: {
     ...defaultSiteContent.story,
     ...(value?.story && typeof value.story === 'object' ? value.story : {}),
+    highlight: removeTatweel(String(value?.story?.highlight || defaultSiteContent.story.highlight)),
     features: Array.isArray(value?.story?.features) && value.story.features.length
       ? value.story.features
       : defaultSiteContent.story.features,
   },
-  collections: Array.isArray(value?.collections) && value.collections.length
+  collections: (Array.isArray(value?.collections) && value.collections.length
     ? value.collections
-    : defaultSiteContent.collections,
+    : defaultSiteContent.collections).map((collection) => ({
+      ...collection,
+      titleAr: removeTatweel(collection.titleAr || collection.title),
+    })),
 });
 
 export default function App() {
