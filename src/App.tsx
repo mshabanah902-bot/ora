@@ -45,11 +45,15 @@ export default function App() {
   useEffect(() => {
     void loadProducts().then((data) => {
       const storedProducts = readStored<Product[]>('ora-products', []);
-      const source = data.length ? data : (storedProducts.length ? storedProducts : defaultProducts);
+      const productsById = new Map(data.map((product) => [product.id, product]));
+      storedProducts.forEach((product) => {
+        if (!productsById.has(product.id)) productsById.set(product.id, product);
+      });
+      const source = productsById.size ? [...productsById.values()] : defaultProducts;
       const ordered = normalizeProducts([...source].sort((a, b) => Number(b.id) - Number(a.id)));
       setProducts(ordered);
       localStorage.setItem('ora-products', JSON.stringify(ordered));
-      if (!data.length) void persistProducts(ordered).catch(() => undefined);
+      if (ordered.length > data.length) void persistProducts(ordered).catch(() => undefined);
     }).catch(() => undefined);
     void loadSiteContent().then((data) => {
       const merged = mergeSiteContent(data);
@@ -80,9 +84,10 @@ export default function App() {
   const saveProducts = async (next: Product[]) => {
     if (!next.length) throw new Error('لا يمكن حفظ قائمة منتجات فارغة');
     const ordered = normalizeProducts([...next].sort((a, b) => Number(b.id) - Number(a.id)));
-    await persistProducts(ordered);
-    setProducts(ordered);
-    localStorage.setItem('ora-products', JSON.stringify(ordered));
+    const saved = await persistProducts(ordered);
+    const savedOrdered = normalizeProducts([...saved].sort((a, b) => Number(b.id) - Number(a.id)));
+    setProducts(savedOrdered);
+    localStorage.setItem('ora-products', JSON.stringify(savedOrdered));
   };
   const saveSiteContent = async (next: SiteContent) => {
     const merged = mergeSiteContent(next);

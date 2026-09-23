@@ -10,9 +10,15 @@ export async function loadProducts() {
 
 export async function saveProducts(products: Product[]) {
   if (!products.length) throw new Error('Refusing to replace the product catalog with an empty list');
-  const { data, error } = await supabase.from('store_settings').upsert({ key: 'products', value: products, updated_at: new Date().toISOString() }).select('value').single();
+  const current = await loadProducts();
+  const incomingById = new Map(products.map((product) => [product.id, product]));
+  const merged = current.map((product) => incomingById.get(product.id) || product);
+  const currentIds = new Set(current.map((product) => product.id));
+  const next = [...merged, ...products.filter((product) => !currentIds.has(product.id))];
+  const { data, error } = await supabase.from('store_settings').upsert({ key: 'products', value: next, updated_at: new Date().toISOString() }).select('value').single();
   if (error) throw error;
-  if (!Array.isArray(data?.value) || data.value.length !== products.length) throw new Error('Supabase did not confirm the products update');
+  if (!Array.isArray(data?.value) || data.value.length !== next.length) throw new Error('Supabase did not confirm the products update');
+  return data.value as Product[];
 }
 
 export async function loadSiteContent() {
