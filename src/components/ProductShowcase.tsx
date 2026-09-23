@@ -7,12 +7,14 @@ import type { WishlistItem } from '../App';
 import { useLanguage } from '../i18n';
 
 const getColorHex = (name: string) => {
-  const color = name.trim().toLocaleLowerCase();
+  const color = name.trim().toLocaleLowerCase().replace(/[إأآ]/g, 'ا').replace(/ة/g, 'ه');
   const colors: Record<string, string> = {
     'ابيض': '#f5f2ed', 'أبيض': '#f5f2ed', 'white': '#f5f2ed',
     'اسود': '#171717', 'أسود': '#171717', 'black': '#171717',
     'كحلي': '#1d2d4b', 'navy': '#1d2d4b',
     'زيتي': '#65705a', 'olive': '#65705a',
+    'بني غامق': '#4b2e24', 'بني داكن': '#4b2e24', 'dark brown': '#4b2e24', 'dark-brown': '#4b2e24', 'chocolate': '#4b2e24',
+    'بني فاتح': '#a47551', 'light brown': '#a47551', 'light-brown': '#a47551', 'كاراميل': '#b9825b', 'caramel': '#b9825b',
     'بني': '#795548', 'brown': '#795548',
     'بيج': '#d6c2a5', 'beige': '#d6c2a5',
     'عنابي': '#7f1d32', 'burgundy': '#7f1d32',
@@ -28,7 +30,10 @@ const getColorHex = (name: string) => {
     'فضي': '#a8a29e', 'silver': '#a8a29e',
     'موكا': '#92745f', 'mocha': '#92745f',
   };
-  return colors[color] || '#a98a6a';
+  if (colors[color]) return colors[color];
+  if (color.includes('بني') || color.includes('brown')) return '#795548';
+  if (color.includes('موكا') || color.includes('mocha')) return '#92745f';
+  return '#a98a6a';
 };
 
 const getProductSizes = (product: Product) => product.sizes?.length
