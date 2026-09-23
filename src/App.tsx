@@ -15,6 +15,15 @@ import { defaultSiteContent, type SiteContent } from './data/siteContent';
 export type WishlistItem = Product & { selectedColor: string; selectedSize: string };
 const normalizeProducts = (items: Product[]) => items.map((product) => ({ ...product, category: product.name.trim() }));
 
+function readLegacyProducts() {
+  try {
+    const value = localStorage.getItem('ora-products');
+    return value ? JSON.parse(value) as Product[] : [];
+  } catch {
+    return [];
+  }
+}
+
 const mergeSiteContent = (value: Partial<SiteContent> | null | undefined): SiteContent => ({
   ...defaultSiteContent,
   ...value,
@@ -35,7 +44,18 @@ export default function App() {
   const [siteContent, setSiteContent] = useState<SiteContent>(() => mergeSiteContent({}));
   useEffect(() => {
     void loadProducts().then((data) => {
-      if (data.length) setProducts(normalizeProducts([...data].sort((a, b) => Number(b.id) - Number(a.id))));
+      const legacyProducts = readLegacyProducts();
+      const productsById = new Map(data.map((product) => [product.id, product]));
+      legacyProducts.forEach((product) => {
+        if (!productsById.has(product.id)) productsById.set(product.id, product);
+      });
+      const restored = normalizeProducts([...productsById.values()].sort((a, b) => Number(b.id) - Number(a.id)));
+      if (restored.length) setProducts(restored);
+      if (restored.length > data.length) {
+        void persistProducts(restored).then(() => localStorage.removeItem('ora-products')).catch(() => undefined);
+      } else if (legacyProducts.length) {
+        localStorage.removeItem('ora-products');
+      }
     }).catch(() => undefined);
     void loadSiteContent().then((data) => {
       const merged = mergeSiteContent(data);
