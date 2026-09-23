@@ -21,8 +21,9 @@ export async function loadSiteContent() {
 }
 
 export async function saveSiteContent(content: SiteContent) {
-  const { error } = await supabase.from('store_settings').upsert({ key: 'site_content', value: content, updated_at: new Date().toISOString() });
+  const { data, error } = await supabase.from('store_settings').upsert({ key: 'site_content', value: content, updated_at: new Date().toISOString() }).select('value').single();
   if (error) throw error;
+  if (!data?.value || typeof data.value !== 'object') throw new Error('Supabase did not confirm the site content update');
 }
 
 export async function loadOrders() {

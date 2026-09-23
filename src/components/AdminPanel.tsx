@@ -69,7 +69,14 @@ const save = async (productsToSave?: Product[]) => {
     if (!productsToSave) setOpen(false);
   };
   const saveContent = async () => {
-    try { await onSaveSiteContent(contentDraft); } catch { return; }
+    setSaveError('');
+    try {
+      await onSaveSiteContent(contentDraft);
+    } catch (error) {
+      console.error('تعذر حفظ محتوى الموقع في Supabase', error);
+      setSaveError('تعذر حفظ محتوى الموقع في قاعدة البيانات. حاول مرة أخرى.');
+      return;
+    }
     setOpen(false);
   };  return (
     <>
