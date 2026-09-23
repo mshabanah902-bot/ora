@@ -1,5 +1,5 @@
 const myLogo = new URL('/my-logo.png', import.meta.url).href;
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, ShoppingBag, Heart, X, ArrowRight } from 'lucide-react';
 import type { Product as StoreProduct } from '../data/products';
@@ -48,7 +48,7 @@ export default function Navbar({ products, onCartOpen, cartCount, wishlist, onTo
   }, []);
 
   // دالة المعالجة والمطابقة الفورية بناءً على الاسم العربي، الإنجليزي، أو اللون
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setSearchQuery(query);
 

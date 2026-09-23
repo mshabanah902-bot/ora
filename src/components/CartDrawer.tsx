@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Minus, Plus, Trash2, X } from 'lucide-react';
 import type { Product } from '../data/products';
@@ -43,6 +43,6 @@ export default function CartDrawer({ open, items, onClose, onChange, onClear }: 
 }
 
 function useStateRegion() {
-  const [region, setRegion] = React.useState<keyof typeof delivery>('الضفة');
+  const [region, setRegion] = useState<keyof typeof delivery>('الضفة');
   return [region, setRegion] as const;
 }
