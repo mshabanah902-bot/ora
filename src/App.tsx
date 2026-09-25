@@ -33,7 +33,7 @@ const normalizeProducts = (items: unknown): Product[] => {
         id: Number(product.id),
         name: String(product.name || `Product ${product.id || ''}`).trim(),
         nameAr: String(product.nameAr || product.name || '').trim(),
-        category: String(product.name || '').trim(),
+        category: String(product.category || product.name || '').trim(),
         image,
         images: images.length ? images : image ? [{ color: product.colorName || '', img: image }] : [],
         colors,
@@ -117,24 +117,68 @@ export default function App() {
     writeStored('ora-site-content-cache', siteContent);
   }, [siteContent]);
   useEffect(() => {
-    void loadProducts().then((data) => {
-      const legacyProducts = readLegacyProducts();
-      const productsById = new Map(data.map((product) => [product.id, product]));
-      legacyProducts.forEach((product) => {
-        if (!productsById.has(product.id)) productsById.set(product.id, product);
-      });
-      const restored = normalizeProducts([...productsById.values()].sort((a, b) => Number(b.id) - Number(a.id)));
-      if (restored.length) setProducts(restored);
-      if (restored.length > data.length) {
-        void persistProducts(restored).then(() => removeStored('ora-products')).catch(() => undefined);
-      } else if (legacyProducts.length) {
-        removeStored('ora-products');
+    let active = true;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let retryAttempt = 0;
+    let loading = false;
+
+    const refresh = async () => {
+      if (!active || loading) return;
+      loading = true;
+      const [productsResult, contentResult] = await Promise.allSettled([loadProducts(), loadSiteContent()]);
+      loading = false;
+      if (!active) return;
+
+      if (productsResult.status === 'fulfilled') {
+        const data = productsResult.value;
+        const legacyProducts = readLegacyProducts();
+        const productsById = new Map(data.map((product) => [product.id, product]));
+        legacyProducts.forEach((product) => {
+          if (!productsById.has(product.id)) productsById.set(product.id, product);
+        });
+        const restored = normalizeProducts([...productsById.values()].sort((a, b) => Number(b.id) - Number(a.id)));
+        if (restored.length) setProducts(restored);
+        if (restored.length > data.length) {
+          void persistProducts(restored).then(() => removeStored('ora-products')).catch(() => undefined);
+        } else if (legacyProducts.length) {
+          removeStored('ora-products');
+        }
       }
-    }).catch(() => undefined);
-    void loadSiteContent().then((data) => {
-      const merged = mergeSiteContent(data);
-      setSiteContent(merged);
-    }).catch(() => undefined);
+
+      if (contentResult.status === 'fulfilled') {
+        setSiteContent(mergeSiteContent(contentResult.value));
+      }
+
+      if (productsResult.status === 'rejected' || contentResult.status === 'rejected') {
+        retryAttempt += 1;
+        const delay = Math.min(1000 * 2 ** (retryAttempt - 1), 30000);
+        retryTimer = setTimeout(() => void refresh(), delay);
+        return;
+      }
+
+      retryAttempt = 0;
+    };
+
+    const refreshWhenAvailable = () => {
+      if (!navigator.onLine || document.visibilityState !== 'visible') return;
+      if (retryTimer) clearTimeout(retryTimer);
+      retryTimer = undefined;
+      retryAttempt = 0;
+      void refresh();
+    };
+
+    window.addEventListener('online', refreshWhenAvailable);
+    window.addEventListener('focus', refreshWhenAvailable);
+    document.addEventListener('visibilitychange', refreshWhenAvailable);
+    void refresh();
+
+    return () => {
+      active = false;
+      if (retryTimer) clearTimeout(retryTimer);
+      window.removeEventListener('online', refreshWhenAvailable);
+      window.removeEventListener('focus', refreshWhenAvailable);
+      document.removeEventListener('visibilitychange', refreshWhenAvailable);
+    };
   }, []);
   const addToCart = (product: Product, selectedColor: string, selectedSize: string) => {
     const selectedColorData = product.colors?.find((color) => color.name === selectedColor);
