@@ -314,6 +314,8 @@ function optimizeImage(dataUrl: string) {
 function ContentTab({ draft, update, onSave }: { draft: SiteContent; update: (content: SiteContent) => void; onSave: () => void }) {
   const setHero = (change: Partial<SiteContent['hero']>) => update({ ...draft, hero: { ...draft.hero, ...change } });
   const setStory = (change: Partial<SiteContent['story']>) => update({ ...draft, story: { ...draft.story, ...change } });
+  const setSeasonCopy = (change: Partial<SiteContent['shopSections']['seasons']>) => update({ ...draft, shopSections: { ...draft.shopSections, seasons: { ...draft.shopSections.seasons, ...change } } });
+  const setTypeCopy = (change: Partial<SiteContent['shopSections']['types']>) => update({ ...draft, shopSections: { ...draft.shopSections, types: { ...draft.shopSections.types, ...change } } });
   const setCollection = (index: number, change: Partial<SiteContent['collections'][number]>) => update({ ...draft, collections: draft.collections.map((item, itemIndex) => itemIndex === index ? { ...item, ...change } : item) });
   const imageField = (label: string, value: string, onChange: (value: string) => void) => <label className="block text-xs text-charcoal-500">{label}<input className="field mt-1" value={value} onChange={(e) => onChange(e.target.value)} placeholder="رابط الصورة أو ارفع صورة" /><input type="file" accept="image/*" className="field mt-1 text-xs" onChange={(e) => readImage(e.target.files?.[0], onChange)} />{value && <img src={value} alt={label} className="mt-2 h-32 w-full rounded-xl object-cover" />}</label>;
   return <div className="space-y-5">
@@ -334,6 +336,39 @@ function ContentTab({ draft, update, onSave }: { draft: SiteContent; update: (co
       {imageField('الصورة الرئيسية للقسم', draft.story.image, (image) => setStory({ image }))}
       {imageField('الصورة الثانوية للقسم', draft.story.secondaryImage, (secondaryImage) => setStory({ secondaryImage }))}
       {draft.story.features.map((feature, index) => <div key={index} className="rounded-xl bg-ora-50 p-3 space-y-2"><input className="field" value={feature.title} onChange={(e) => setStory({ features: draft.story.features.map((item, i) => i === index ? { ...item, title: e.target.value } : item) })} placeholder={`عنوان الميزة ${index + 1}`} /><textarea className="field min-h-20 resize-y" value={feature.description} onChange={(e) => setStory({ features: draft.story.features.map((item, i) => i === index ? { ...item, description: e.target.value } : item) })} placeholder="تفاصيل الميزة" /></div>)}
+    </div>
+    <div className="rounded-2xl border border-ora-200 bg-ora-50/70 p-4 shadow-sm space-y-4">
+      <div>
+        <h3 className="font-bold text-lg">نصوص تشكيلات الموسم</h3>
+        <p className="text-xs text-charcoal-500">تظهر هذه النصوص في قسم الموسم مستقلة عن إعدادات الهيرو والمجموعات.</p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <input className="field" value={draft.shopSections.seasons.kicker} onChange={(e) => setSeasonCopy({ kicker: e.target.value })} placeholder="العنوان الصغير" />
+        <input className="field" value={draft.shopSections.seasons.title} onChange={(e) => setSeasonCopy({ title: e.target.value })} placeholder="عنوان القسم" />
+        <input className="field" value={draft.shopSections.seasons.hint} onChange={(e) => setSeasonCopy({ hint: e.target.value })} placeholder="الوصف أسفل العنوان" />
+        <input className="field" value={draft.shopSections.seasons.action} onChange={(e) => setSeasonCopy({ action: e.target.value })} placeholder="نص زر التصفح" />
+        <input className="field" value={draft.shopSections.seasons.countSuffix} onChange={(e) => setSeasonCopy({ countSuffix: e.target.value })} placeholder="كلمة عدد القطع" />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border-t border-ora-200 pt-3">
+        <input className="field" value={draft.shopSections.seasons.winterTitle} onChange={(e) => setSeasonCopy({ winterTitle: e.target.value })} placeholder="عنوان الشتوي" />
+        <input className="field" value={draft.shopSections.seasons.winterDescription} onChange={(e) => setSeasonCopy({ winterDescription: e.target.value })} placeholder="وصف الشتوي" />
+        <input className="field" value={draft.shopSections.seasons.summerTitle} onChange={(e) => setSeasonCopy({ summerTitle: e.target.value })} placeholder="عنوان الصيفي" />
+        <input className="field" value={draft.shopSections.seasons.summerDescription} onChange={(e) => setSeasonCopy({ summerDescription: e.target.value })} placeholder="وصف الصيفي" />
+        <input className="field" value={draft.shopSections.seasons.autumnTitle} onChange={(e) => setSeasonCopy({ autumnTitle: e.target.value })} placeholder="عنوان الخريفي" />
+        <input className="field" value={draft.shopSections.seasons.autumnDescription} onChange={(e) => setSeasonCopy({ autumnDescription: e.target.value })} placeholder="وصف الخريفي" />
+      </div>
+    </div>
+    <div className="rounded-2xl border border-ora-200 bg-ora-50/70 p-4 shadow-sm space-y-3">
+      <div>
+        <h3 className="font-bold text-lg">نصوص أنواع القطع</h3>
+        <p className="text-xs text-charcoal-500">إعداد مستقل لعنوان بطاقات الأطقم والبلايز والقمصان وزرها.</p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <input className="field" value={draft.shopSections.types.kicker} onChange={(e) => setTypeCopy({ kicker: e.target.value })} placeholder="العنوان الصغير" />
+        <input className="field" value={draft.shopSections.types.title} onChange={(e) => setTypeCopy({ title: e.target.value })} placeholder="عنوان القسم" />
+        <input className="field" value={draft.shopSections.types.action} onChange={(e) => setTypeCopy({ action: e.target.value })} placeholder="نص زر التصفح" />
+        <input className="field" value={draft.shopSections.types.countSuffix} onChange={(e) => setTypeCopy({ countSuffix: e.target.value })} placeholder="كلمة عدد القطع" />
+      </div>
     </div>
     <div className="rounded-2xl bg-white p-4 shadow-sm space-y-3">
       <h3 className="font-bold text-lg">ORA Collections</h3>

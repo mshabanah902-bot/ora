@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, Heart, Leaf, ShoppingBag, Snowflake, Star, Sun, Tag } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import type { Product } from '../data/products';
+import type { SiteContent } from '../data/siteContent';
 import { normalizeProductType, translateProductColor, translateProductType, useLanguage } from '../i18n';
 
 const seasons = [
@@ -32,21 +33,26 @@ function getOfferColorHex(name: string) {
   return '#a98a6a';
 }
 
-export function SeasonalSections({ products }: { products: Product[] }) {
+export function SeasonalSections({ products, copy }: { products: Product[]; copy: SiteContent['shopSections']['seasons'] }) {
   const { language, t } = useLanguage();
+  const titleKey = language === 'ar' ? copy.title : t('seasonsTitle');
   return (
-    <section aria-label={t('seasonsTitle')} className="relative overflow-hidden bg-[#faf8f5]/88 py-16 sm:py-20" dir={language === 'en' ? 'ltr' : 'rtl'}>
+    <section aria-label={titleKey} className="relative overflow-hidden bg-[#faf8f5]/88 py-16 sm:py-20" dir={language === 'en' ? 'ltr' : 'rtl'}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-8 text-center">
-          <span className="mb-2 block text-xs font-semibold text-ora-700">{t('seasonsKicker')}</span>
-          <h2 className="seasonal-word-spacing text-3xl font-extrabold text-black sm:text-4xl">{t('seasonsTitle')}</h2>
-          <span className="mt-2 block text-sm text-charcoal-600">{t('seasonsHint')}</span>
+          <span className="mb-2 block text-xs font-semibold text-ora-700">{language === 'ar' ? copy.kicker : t('seasonsKicker')}</span>
+          <h2 className="seasonal-word-spacing text-3xl font-extrabold text-black sm:text-4xl">{titleKey}</h2>
+          <span className="mt-2 block text-sm text-charcoal-600">{language === 'ar' ? copy.hint : t('seasonsHint')}</span>
         </div>
         <div className="category-rail" aria-label={t('seasonsTitle')}>
           {seasons.map(({ id, titleKey, subtitleKey, Icon }, index) => {
             const seasonalProducts = products.filter((product) => product.season === id);
             const image = seasonalProducts[0]?.image || products[index]?.image;
-            const title = t(titleKey);
+            const defaultTitle = t(titleKey);
+            const titleField = { winter: 'winterTitle', summer: 'summerTitle', autumn: 'autumnTitle' }[id];
+            const descriptionField = { winter: 'winterDescription', summer: 'summerDescription', autumn: 'autumnDescription' }[id];
+            const cardTitle = language === 'ar' ? copy[titleField] : defaultTitle;
+            const description = language === 'ar' ? copy[descriptionField] : t(subtitleKey);
             return (
               <motion.button
                 key={id}
@@ -58,15 +64,15 @@ export function SeasonalSections({ products }: { products: Product[] }) {
                 transition={{ delay: index * 0.08 }}
                 className="category-tile group"
               >
-                {image && <img src={image} alt={t('seasonPieceAlt').replace('{season}', title)} className="category-tile-image" loading="lazy" />}
+                {image && <img src={image} alt={t('seasonPieceAlt').replace('{season}', cardTitle)} className="category-tile-image" loading="lazy" />}
                 <span className="category-tile-blur" />
                 <span className="category-tile-icon"><Icon size={24} strokeWidth={1.7} /></span>
                 <span className="category-tile-copy seasonal-word-spacing">
-                  <span className="category-tile-title">{language === 'ar' ? `ملابس ${title}` : title}</span>
-                  <span className="category-tile-description">{t(subtitleKey)}</span>
-                  <span className="category-tile-action">{t('seasonalCta')} {language === 'en' ? <ArrowRight size={16} /> : <ArrowLeft size={16} />}</span>
+                  <span className="category-tile-title">{cardTitle}</span>
+                  <span className="category-tile-description">{description}</span>
+                  <span className="category-tile-action">{language === 'ar' ? copy.action : t('seasonalCta')} {language === 'en' ? <ArrowRight size={16} /> : <ArrowLeft size={16} />}</span>
                 </span>
-                <span className="category-tile-count">{seasonalProducts.length} {t('seasonalCount')}</span>
+                <span className="category-tile-count">{seasonalProducts.length} {language === 'ar' ? copy.countSuffix : t('seasonalCount')}</span>
               </motion.button>
             );
           })}
@@ -82,7 +88,7 @@ const standardTypes = [
   { value: 'shirts', labelKey: 'typeShirts' },
 ] as const;
 
-export function ProductTypeSections({ products }: { products: Product[] }) {
+export function ProductTypeSections({ products, copy }: { products: Product[]; copy: SiteContent['shopSections']['types'] }) {
   const { language, t } = useLanguage();
   const customTypes = [...new Set(products.map((product) => product.productType?.trim()).filter((type): type is string => Boolean(type)))]
     .filter((type) => !standardTypes.some((standard) => standard.value === normalizeProductType(type)))
@@ -93,11 +99,11 @@ export function ProductTypeSections({ products }: { products: Product[] }) {
   ];
 
   return (
-    <section aria-label={t('typesTitle')} className="relative overflow-hidden bg-[#faf8f5]/88 py-16 sm:py-20">
+    <section aria-label={language === 'ar' ? copy.title : t('typesTitle')} className="relative overflow-hidden bg-[#faf8f5]/88 py-16 sm:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-8 text-center" dir="auto">
-          <span className="mb-2 block text-xs font-semibold text-ora-700">{t('typesKicker')}</span>
-          <h2 className="seasonal-word-spacing text-3xl font-extrabold text-black sm:text-4xl">{t('typesTitle')}</h2>
+          <span className="mb-2 block text-xs font-semibold text-ora-700">{language === 'ar' ? copy.kicker : t('typesKicker')}</span>
+          <h2 className="seasonal-word-spacing text-3xl font-extrabold text-black sm:text-4xl">{language === 'ar' ? copy.title : t('typesTitle')}</h2>
         </div>
         <div className="category-rail" aria-label={t('typesTitle')}>
           {groups.map(({ value, label }, index) => {
@@ -109,9 +115,9 @@ export function ProductTypeSections({ products }: { products: Product[] }) {
                 <span className="category-tile-blur" />
                 <span className="category-tile-copy seasonal-word-spacing">
                   <span className="category-tile-title">{label}</span>
-                  <span className="category-tile-action">{t('seasonalCta')} {language === 'en' ? <ArrowRight size={16} /> : <ArrowLeft size={16} />}</span>
+                  <span className="category-tile-action">{language === 'ar' ? copy.action : t('seasonalCta')} {language === 'en' ? <ArrowRight size={16} /> : <ArrowLeft size={16} />}</span>
                 </span>
-                <span className="category-tile-count">{items.length} {t('seasonalCount')}</span>
+                <span className="category-tile-count">{items.length} {language === 'ar' ? copy.countSuffix : t('seasonalCount')}</span>
               </motion.button>
             );
           })}
@@ -197,7 +203,6 @@ export function SpecialOffers({ products, onAdd, likedProductIds, onToggleWishli
     <section aria-label={t('offersTitle')} className="overflow-hidden bg-[#2e3220]/94 py-14 text-white sm:py-16" dir={language === 'en' ? 'ltr' : 'rtl'}>
       <div className="mx-auto mb-8 flex max-w-7xl items-end justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <div>
-          <span className="seasonal-word-spacing mb-2 block text-xs font-semibold text-ora-300">{t('offersKicker')}</span>
           <h2 className="seasonal-word-spacing flex items-center gap-2 text-3xl font-extrabold sm:text-4xl"><Tag size={26} className="text-ora-300" /> {t('offersTitle')}</h2>
         </div>
         <span className="hidden text-sm text-white/65 sm:block">{t('offersHint')}</span>

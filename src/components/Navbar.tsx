@@ -229,7 +229,7 @@ export default function Navbar({ products, onCartOpen, cartCount, wishlist, onTo
               <motion.span key={`cart-pulse-${cartPulse}`} initial={{ y: 0, rotate: 0, scale: 1 }} animate={cartPulse ? { y: [0, -12, 0, -4, 0], rotate: [0, -22, 18, -8, 0], scale: [1, 1.38, 0.95, 1.12, 1] } : { y: 0, rotate: 0, scale: 1 }} transition={{ duration: 0.82, ease: 'easeOut' }}>
                 <ShoppingBag className="w-5 h-5" />
               </motion.span>
-              <motion.span key={`cart-count-${cartCount}`} initial={{ scale: 0.65 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 16 }} className={`absolute -top-1 -right-1 min-w-4 h-4 px-1 ${scrolled ? 'bg-black' : 'bg-ora-600'} text-white text-[10px] font-bold rounded-full flex items-center justify-center`}>{cartCount}</motion.span>
+              <motion.span key={`cart-count-${cartCount}`} initial={{ scale: 0.65 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 16 }} className={`absolute -top-1 -right-1 flex items-center justify-center text-[10px] font-bold ${scrolled ? 'min-w-0 h-auto bg-transparent px-0 text-black' : 'min-w-4 h-4 rounded-full bg-ora-600 px-1 text-white'}`}>{cartCount}</motion.span>
             </button>
             
           </div>

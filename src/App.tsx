@@ -84,6 +84,10 @@ function removeStored(key: string) {
 const mergeSiteContent = (value: Partial<SiteContent> | null | undefined): SiteContent => ({
   ...defaultSiteContent,
   ...(value && typeof value === 'object' ? value : {}),
+  shopSections: {
+    seasons: { ...defaultSiteContent.shopSections.seasons, ...(value?.shopSections?.seasons || {}) },
+    types: { ...defaultSiteContent.shopSections.types, ...(value?.shopSections?.types || {}) },
+  },
   hero: { ...defaultSiteContent.hero, ...(value?.hero && typeof value.hero === 'object' ? value.hero : {}) },
   story: {
     ...defaultSiteContent.story,
@@ -233,8 +237,8 @@ export default function App() {
       <div className="relative z-[1]">
       <Navbar products={products} onCartOpen={() => setCartOpen(true)} cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)} wishlist={wishlist} onToggleWishlist={toggleWishlist} />
       <Hero content={siteContent.hero} />
-      <SeasonalSections products={products} />
-      <ProductTypeSections products={products} />
+      <SeasonalSections products={products} copy={siteContent.shopSections.seasons} />
+      <ProductTypeSections products={products} copy={siteContent.shopSections.types} />
       <SpecialOffers products={products} onAdd={addToCart} likedProductIds={wishlist.map((item) => item.id)} onToggleWishlist={toggleWishlist} />
       <Collections collections={siteContent.collections} onSelectCollection={(title) => {
         document.dispatchEvent(new CustomEvent('ora:select-collection', { detail: title }));

@@ -1,4 +1,25 @@
 export type SiteContent = {
+  shopSections: {
+    seasons: {
+      kicker: string;
+      title: string;
+      hint: string;
+      action: string;
+      countSuffix: string;
+      winterTitle: string;
+      winterDescription: string;
+      summerTitle: string;
+      summerDescription: string;
+      autumnTitle: string;
+      autumnDescription: string;
+    };
+    types: {
+      kicker: string;
+      title: string;
+      action: string;
+      countSuffix: string;
+    };
+  };
   collections: {
     title: string;
     titleAr: string;
@@ -29,6 +50,27 @@ export type SiteContent = {
 };
 
 export const defaultSiteContent: SiteContent = {
+  shopSections: {
+    seasons: {
+      kicker: 'اختاري إطلالتك',
+      title: 'تشكيلات المواسم',
+      hint: 'قطع مختارة لكل فصل',
+      action: 'تصفحي القطع',
+      countSuffix: 'قطع',
+      winterTitle: 'ملابس شتوي',
+      winterDescription: 'دفء وأناقة لأيام الشتاء',
+      summerTitle: 'ملابس صيفي',
+      summerDescription: 'إطلالات خفيفة لأيام الصيف',
+      autumnTitle: 'ملابس خريفي',
+      autumnDescription: 'ألوان هادئة وتفاصيل دافئة',
+    },
+    types: {
+      kicker: 'تسوقي حسب النوع',
+      title: 'أنواع القطع',
+      action: 'تصفحي القطع',
+      countSuffix: 'قطع',
+    },
+  },
   collections: [
     { title: 'ATHER', titleAr: 'أثيـــــر', subtitle: 'تصميم أثير بقماشة لينن', image: 'https://res.cloudinary.com/lohinijb/image/upload/v1787262325/13d50c31-f92c-44c0-a432-fba5ae36b743.jpg', items: 'S-M-L-XL' },
     { title: 'NASAQ', titleAr: 'نســـــق', subtitle: 'تصميم نسق بقماشة كتان', image: 'https://res.cloudinary.com/lohinijb/image/upload/v1787262324/a0c5a5db-bc7a-4671-a8d1-31724f7b9a05.jpg', items: 'S-M-L-XL' },
