@@ -6,9 +6,10 @@ import Footer from './components/Footer';
 import { useEffect, useState } from 'react';
 import { ShoppingBag } from 'lucide-react';
 import ProductShowcase from './components/ProductShowcase';
+import { AutumnLeaves, ProductTypeSections, SeasonalSections, SpecialOffers } from './components/SeasonalSections';
 import CartDrawer, { type CartItem } from './components/CartDrawer';
 import AdminPanel from './components/AdminPanel';
-import { defaultProducts, type Product } from './data/products';
+import { defaultProductSeasons, defaultProducts, type Product } from './data/products';
 import { loadProducts, loadSiteContent, saveProducts as persistProducts, saveSiteContent as persistSiteContent } from './lib/api';
 import { defaultSiteContent, type SiteContent } from './data/siteContent';
 
@@ -19,7 +20,7 @@ const normalizeProducts = (items: unknown): Product[] => {
 
   return items
     .filter((item): item is Partial<Product> => Boolean(item && typeof item === 'object'))
-    .map((product) => {
+    .map((product, index) => {
       const images = Array.isArray(product.images)
         ? product.images.filter((image): image is { color: string; img: string } => Boolean(image?.img))
         : [];
@@ -34,6 +35,7 @@ const normalizeProducts = (items: unknown): Product[] => {
         name: String(product.name || `Product ${product.id || ''}`).trim(),
         nameAr: String(product.nameAr || product.name || '').trim(),
         category: String(product.category || product.name || '').trim(),
+        season: product.season ?? defaultProductSeasons[Number(product.id)] ?? (['winter', 'summer', 'autumn'] as const)[index % 3],
         image,
         images: images.length ? images : image ? [{ color: product.colorName || '', img: image }] : [],
         colors,
@@ -98,7 +100,7 @@ const mergeSiteContent = (value: Partial<SiteContent> | null | undefined): SiteC
 export default function App() {
   const [products, setProducts] = useState<Product[]>(() => {
     const cached = normalizeProducts(readStored<unknown>('ora-products-cache', defaultProducts));
-    return cached.length ? cached : defaultProducts;
+    return cached.length ? cached : [...defaultProducts].sort((a, b) => b.id - a.id);
   });
   const [cart, setCart] = useState<CartItem[]>(() => readStored<CartItem[]>('ora-cart', []));
   const [cartOpen, setCartOpen] = useState(false);
@@ -136,7 +138,13 @@ export default function App() {
         legacyProducts.forEach((product) => {
           if (!productsById.has(product.id)) productsById.set(product.id, product);
         });
-        const restored = normalizeProducts([...productsById.values()].sort((a, b) => Number(b.id) - Number(a.id)));
+        const catalog = normalizeProducts([...productsById.values()]);
+        const hasDisplayOrder = catalog.length > 0 && catalog.every((product) => Number.isFinite(product.displayOrder));
+        const restored = catalog
+          .sort((a, b) => hasDisplayOrder
+            ? (a.displayOrder || 0) - (b.displayOrder || 0)
+            : Number(b.id) - Number(a.id))
+          .map((product, index) => ({ ...product, displayOrder: hasDisplayOrder ? product.displayOrder : index }));
         if (restored.length) setProducts(restored);
         if (restored.length > data.length) {
           void persistProducts(restored).then(() => removeStored('ora-products')).catch(() => undefined);
@@ -196,14 +204,15 @@ export default function App() {
         ? items.map((item) => item.lineId === lineId ? { ...item, quantity: item.quantity + 1 } : item)
         : [...items, { ...product, image: selectedImage, quantity: 1, selectedColor, selectedSize, lineId }];
     });
+    document.dispatchEvent(new Event('ora:cart-added'));
   };
   const changeQuantity = (lineId: string, delta: number) => setCart((items) => items.map((item) => item.lineId === lineId ? { ...item, quantity: item.quantity + delta } : item).filter((item) => item.quantity > 0));
   const saveProducts = async (next: Product[]) => {
     if (!next.length) throw new Error('لا يمكن حفظ قائمة منتجات فارغة');
-    const ordered = normalizeProducts([...next].sort((a, b) => Number(b.id) - Number(a.id)));
+    const ordered = normalizeProducts(next).map((product, index) => ({ ...product, displayOrder: index }));
     setProducts(ordered);
     const saved = await persistProducts(ordered);
-    const savedOrdered = normalizeProducts([...saved].sort((a, b) => Number(b.id) - Number(a.id)));
+    const savedOrdered = normalizeProducts(saved).sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
     setProducts(savedOrdered);
   };
   const saveSiteContent = async (next: SiteContent) => {
@@ -211,16 +220,22 @@ export default function App() {
     setSiteContent(merged);
     await persistSiteContent(merged);
   };
-  const toggleWishlist = (product: Product, selectedColor: string, selectedSize: string) => setWishlist((current) => {
-    const next = current.some((item) => item.id === product.id)
+  const toggleWishlist = (product: Product, selectedColor: string, selectedSize: string) => {
+    const isAdding = !wishlist.some((item) => item.id === product.id);
+    setWishlist((current) => current.some((item) => item.id === product.id)
       ? current.filter((item) => item.id !== product.id)
-      : [...current, { ...product, selectedColor, selectedSize }];
-    return next;
-  });
+      : [...current, { ...product, selectedColor, selectedSize }]);
+    if (isAdding) document.dispatchEvent(new Event('ora:wishlist-added'));
+  };
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen relative isolate">
+      <AutumnLeaves />
+      <div className="relative z-[1]">
       <Navbar products={products} onCartOpen={() => setCartOpen(true)} cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)} wishlist={wishlist} onToggleWishlist={toggleWishlist} />
       <Hero content={siteContent.hero} />
+      <SeasonalSections products={products} />
+      <ProductTypeSections products={products} />
+      <SpecialOffers products={products} onAdd={addToCart} likedProductIds={wishlist.map((item) => item.id)} onToggleWishlist={toggleWishlist} />
       <Collections collections={siteContent.collections} onSelectCollection={(title) => {
         document.dispatchEvent(new CustomEvent('ora:select-collection', { detail: title }));
       }} />
@@ -232,6 +247,7 @@ export default function App() {
       </button>
       <CartDrawer open={cartOpen} items={cart} onClose={() => setCartOpen(false)} onChange={changeQuantity} onClear={() => setCart([])} />
       <AdminPanel products={products} onSave={saveProducts} siteContent={siteContent} onSaveSiteContent={saveSiteContent} />
+      </div>
     </div>
   );
 }

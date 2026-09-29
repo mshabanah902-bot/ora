@@ -1,6 +1,6 @@
-import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ClipboardList, Download, ImagePlus, LockKeyhole, Plus, Settings, Trash2, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, ClipboardList, Download, GripVertical, ImagePlus, LockKeyhole, Plus, Settings, Trash2, X } from 'lucide-react';
 import type { Product } from '../data/products';
 import type { SiteContent } from '../data/siteContent';
 import { loadOrders as loadOrdersFromSupabase } from '../lib/api';
@@ -15,6 +15,12 @@ type Order = {
 
 type Tab = 'products' | 'orders' | 'settings';
 const productBadgeOptions = ['', 'جديد', 'الأكثر مبيعًا', 'مميز', 'حصري', 'عرض خاص', 'الأكثر طلبًا'];
+const productSeasons: { value: NonNullable<Product['season']>; label: string }[] = [
+  { value: '', label: 'بدون موسم' },
+  { value: 'winter', label: 'شتوي' },
+  { value: 'summer', label: 'صيفي' },
+  { value: 'autumn', label: 'خريفي' },
+];
 
 export default function AdminPanel({ products, onSave, siteContent, onSaveSiteContent }: { products: Product[]; onSave: (products?: Product[]) => Promise<void>; siteContent: SiteContent; onSaveSiteContent: (content: SiteContent) => Promise<void> }) {
   const [open, setOpen] = useState(false);
@@ -26,6 +32,8 @@ export default function AdminPanel({ products, onSave, siteContent, onSaveSiteCo
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [contentDraft, setContentDraft] = useState<SiteContent>(siteContent);
   const [saveError, setSaveError] = useState('');
+  const [productsSaving, setProductsSaving] = useState(false);
+  const savingProductsRef = useRef(false);
 
   const login = async () => {
     if (password !== 'ora123') return;
@@ -58,6 +66,9 @@ export default function AdminPanel({ products, onSave, siteContent, onSaveSiteCo
   };
 
 const save = async (productsToSave?: Product[]) => {
+  if (savingProductsRef.current) return;
+  savingProductsRef.current = true;
+  setProductsSaving(true);
     setSaveError('');
     try {
       await onSave(productsToSave || draft);
@@ -65,6 +76,9 @@ const save = async (productsToSave?: Product[]) => {
       console.error('تعذر حفظ المنتجات في Supabase', error);
       setSaveError('تعذر حفظ المنتجات في قاعدة البيانات. حاول مرة أخرى.');
       throw error;
+    } finally {
+      savingProductsRef.current = false;
+      setProductsSaving(false);
     }
     if (!productsToSave) setOpen(false);
   };
@@ -106,7 +120,7 @@ const save = async (productsToSave?: Product[]) => {
                     <button onClick={() => { setTab('orders'); void loadOrders(); }} className={`py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${tab === 'orders' ? 'bg-[#2E3220] text-white' : 'bg-white'}`}><ClipboardList size={17} /> الطلبات</button>
                     <button onClick={() => setTab('settings')} className={`py-3 rounded-xl font-semibold transition-all ${tab === 'settings' ? 'bg-[#2E3220] text-white' : 'bg-white'}`}>المحتوى</button>
                   </div>
-                  {tab === 'products' ? <ProductsTab draft={draft} update={update} onDraftChange={setDraft} onSave={save} readImages={readImages} /> : tab === 'orders' ? <OrdersTab orders={orders} loading={ordersLoading} /> : <ContentTab draft={contentDraft} update={setContentDraft} onSave={saveContent} />}
+                  {tab === 'products' ? <ProductsTab draft={draft} update={update} onDraftChange={setDraft} onSave={save} saving={productsSaving} readImages={readImages} /> : tab === 'orders' ? <OrdersTab orders={orders} loading={ordersLoading} /> : <ContentTab draft={contentDraft} update={setContentDraft} onSave={saveContent} />}
                 </>
               )}
             </motion.aside>
@@ -121,10 +135,22 @@ const save = async (productsToSave?: Product[]) => {
   }
 }
 
-function ProductsTab({ draft, update, onDraftChange, onSave, readImages }: { draft: Product[]; update: (index: number, change: Partial<Product>) => void; onDraftChange: Dispatch<SetStateAction<Product[]>>; onSave: (products?: Product[]) => Promise<void>; readImages: (files: FileList | null, onRead: (images: string[]) => void) => void }) {
+function ProductsTab({ draft, update, onDraftChange, onSave, saving, readImages }: { draft: Product[]; update: (index: number, change: Partial<Product>) => void; onDraftChange: Dispatch<SetStateAction<Product[]>>; onSave: (products?: Product[]) => Promise<void>; saving: boolean; readImages: (files: FileList | null, onRead: (images: string[]) => void) => void }) {
   const [newProduct, setNewProduct] = useState<Product>(() => createEmptyProduct(1));
   const [productSection, setProductSection] = useState<'add' | 'existing'>('add');
+  const [draggedProductIndex, setDraggedProductIndex] = useState<number | null>(null);
   const nextId = useMemo(() => draft.reduce((highest, product) => Math.max(highest, product.id), 0) + 1, [draft]);
+
+  const reorderProducts = (from: number, to: number) => {
+    if (from === to || from < 0 || to < 0 || from >= draft.length || to >= draft.length) return;
+    onDraftChange((current) => {
+      const next = [...current];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+    setDraggedProductIndex(null);
+  };
 
   const updateNewProduct = (change: Partial<Product>) => setNewProduct((current) => ({ ...current, ...change }));
   const updateNewSizes = (sizes: Product['sizes']) => updateNewProduct({ sizes });
@@ -134,7 +160,7 @@ function ProductsTab({ draft, update, onDraftChange, onSave, readImages }: { dra
     image: colors.find((color) => color.image)?.image || newProduct.image,
   });
   const addProduct = async () => {
-    if (!newProduct.name.trim() || !newProduct.nameAr.trim() || !newProduct.colors.some((color) => color.name.trim() && color.image)) return;
+    if (saving || !newProduct.name.trim() || !newProduct.nameAr.trim() || !newProduct.colors.some((color) => color.name.trim() && color.image)) return;
     const colors = newProduct.colors
       .filter((color) => color.name.trim() && color.image)
       .map((color) => ({ ...color, name: color.name.trim(), images: color.images?.length ? color.images : [color.image] }));
@@ -176,6 +202,10 @@ function ProductsTab({ draft, update, onDraftChange, onSave, readImages }: { dra
         <select className="field" value={newProduct.badge} onChange={(e) => updateNewProduct({ badge: e.target.value })} aria-label="تصنيف المنتج">
           {productBadgeOptions.map((badge) => <option key={badge} value={badge}>{badge || 'بدون شارة'}</option>)}
         </select>
+        <select className="field" value={newProduct.season || ''} onChange={(e) => updateNewProduct({ season: e.target.value as Product['season'] })} aria-label="موسم المنتج">
+          {productSeasons.map((season) => <option key={season.value} value={season.value}>{season.label}</option>)}
+        </select>
+        <input className="field" value={newProduct.productType || ''} onChange={(e) => updateNewProduct({ productType: e.target.value })} placeholder="نوع المنتج، مثال: أطقم" aria-label="نوع المنتج" />
       </div>
       <div className="mt-4 border-t border-ora-200 pt-3">
         <p className="font-bold text-sm mb-2">المقاسات والنمر</p>
@@ -203,27 +233,36 @@ function ProductsTab({ draft, update, onDraftChange, onSave, readImages }: { dra
 <button 
   type="button" 
   onClick={addProduct} 
-  disabled={!newProduct.name.trim() || !newProduct.nameAr.trim() || !newProduct.colors.some((color) => color.name.trim() && color.image)} 
+  disabled={saving || !newProduct.name.trim() || !newProduct.nameAr.trim() || !newProduct.colors.some((color) => color.name.trim() && color.image)}
   className="w-full mt-4 py-3 rounded-xl bg-[#2E3220] text-white font-bold shadow-md hover:bg-black transition-colors disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
 >
-  إضافة المنتج للقائمة
+  {saving ? 'جارٍ الحفظ...' : 'إضافة المنتج للقائمة'}
 </button>    </div>}
     {productSection === 'existing' && <div className="space-y-4">{draft.map((product, index) => {
       const sizes = product.sizes?.length ? product.sizes : [{ name: 'One Size', available: true }];
       const colors = product.colors?.length ? product.colors : product.images.map((item) => ({ name: item.color, available: true, image: item.img, images: [item.img], sizeAvailability: Object.fromEntries(sizes.map((size) => [size.name, size.available])) }));
       const setSizes = (next: Product['sizes']) => update(index, { sizes: next });
       const setColors = (next: Product['colors']) => update(index, { colors: next, images: next.flatMap((item) => (item.images?.length ? item.images : [item.image]).filter(Boolean).map((image) => ({ color: item.name, img: image }))) });
-      return <div key={product.id} className="bg-white rounded-2xl p-4 shadow-sm">
+      return <div key={product.id} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const from = Number(event.dataTransfer.getData('text/plain')); if (Number.isInteger(from)) reorderProducts(from, index); }} className={`bg-white rounded-2xl p-4 shadow-sm transition-opacity ${draggedProductIndex === index ? 'opacity-50' : ''}`}>
+        <div className="mb-3 flex items-center justify-between border-b border-ora-100 pb-2">
+          <button type="button" draggable onDragStart={(event) => { setDraggedProductIndex(index); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', String(index)); }} onDragEnd={() => setDraggedProductIndex(null)} aria-label={`اسحب لتغيير ترتيب ${product.nameAr || product.name}`} title="اسحب لتغيير الترتيب" className="cursor-grab touch-none rounded-md p-2 text-charcoal-500 active:cursor-grabbing"><GripVertical size={19} /></button>
+          <div className="flex gap-1">
+            <button type="button" disabled={index === 0} onClick={() => reorderProducts(index, index - 1)} aria-label="تحريك المنتج للأعلى" className="rounded-md p-2 text-charcoal-600 hover:bg-ora-100 disabled:opacity-30"><ChevronUp size={18} /></button>
+            <button type="button" disabled={index === draft.length - 1} onClick={() => reorderProducts(index, index + 1)} aria-label="تحريك المنتج للأسفل" className="rounded-md p-2 text-charcoal-600 hover:bg-ora-100 disabled:opacity-30"><ChevronDown size={18} /></button>
+          </div>
+        </div>
         <div className="grid grid-cols-2 gap-2"><input className="field" value={product.name} onChange={(e) => update(index, { name: e.target.value, category: e.target.value.trim() })} placeholder="اسم المنتج" /><input className="field" value={product.nameAr} onChange={(e) => update(index, { nameAr: e.target.value })} placeholder="الاسم بالعربي" /><input className="field" type="number" value={product.price || ''} onChange={(e) => update(index, { price: Number(e.target.value) })} placeholder="السعر بعد الخصم" /><input className="field" type="number" value={product.originalPrice || ''} onChange={(e) => update(index, { originalPrice: Number(e.target.value) })} placeholder="السعر قبل الخصم (اختياري)" /><select className="field" value={product.badge} onChange={(e) => update(index, { badge: e.target.value })} aria-label={`تصنيف ${product.name}`}>
           {product.badge && !productBadgeOptions.includes(product.badge) && <option value={product.badge}>{product.badge}</option>}
           {productBadgeOptions.map((badge) => <option key={badge} value={badge}>{badge || 'بدون شارة'}</option>)}
         </select></div>
+        <label className="block text-xs text-charcoal-500 mt-3">نوع المنتج<input className="field mt-1" value={product.productType || ''} onChange={(e) => update(index, { productType: e.target.value })} placeholder="مثال: أطقم، بلايز، قمصان" /></label>
+        <label className="block text-xs text-charcoal-500 mt-3">الموسم<select className="field mt-1" value={product.season || ''} onChange={(e) => update(index, { season: e.target.value as Product['season'] })}>{productSeasons.map((season) => <option key={season.value} value={season.value}>{season.label}</option>)}</select></label>
         <label className="block text-xs text-charcoal-500 mt-3">صورة عامة للمقاسات<input type="file" accept="image/*" className="field mt-1 text-xs" onChange={(e) => readImage(e.target.files?.[0], (image) => update(index, { image }))} /></label>
         <div className="mt-4 border-t pt-3"><p className="font-bold text-sm mb-2">المقاسات والنمر — متوفر / غير متوفر</p><div className="space-y-2">{sizes.map((size, sizeIndex) => <div key={`${size.name}-${sizeIndex}`} className="flex gap-2 items-center"><input className="field" value={size.name} onChange={(e) => setSizes(sizes.map((item, i) => i === sizeIndex ? { ...item, name: e.target.value } : item))} placeholder="مثال: M أو 38" /><button onClick={() => setSizes(sizes.map((item, i) => i === sizeIndex ? { ...item, available: !item.available } : item))} className={`px-3 py-2 rounded-lg text-xs whitespace-nowrap ${size.available ? 'availability-available' : 'availability-unavailable'}`}>{size.available ? 'متوفر' : 'غير متوفر'}</button></div>)}</div><button onClick={() => setSizes([...sizes, { name: '', available: true }])} className="mt-2 text-xs text-ora-700">+ إضافة نمرة</button></div>
         <div className="mt-4 border-t pt-3"><p className="font-bold text-sm mb-2">الألوان والصور والتوفر حسب النمرة</p><div className="space-y-3">{colors.map((color, colorIndex) => <div key={`${color.name}-${colorIndex}`} className="rounded-xl bg-ora-50 p-2"><div className="flex gap-2 items-center"><input className="field" value={color.name} onChange={(e) => setColors(colors.map((item, i) => i === colorIndex ? { ...item, name: e.target.value } : item))} placeholder="اسم اللون" /><button onClick={() => setColors(colors.map((item, i) => i === colorIndex ? { ...item, available: !item.available } : item))} className={`px-3 py-2 rounded-lg text-xs whitespace-nowrap ${color.available ? 'availability-available' : 'availability-unavailable'}`}>{color.available ? 'اللون متوفر' : 'اللون غير متوفر'}</button></div><div className="mt-2 flex flex-wrap gap-1.5">{sizes.map((size) => { const available = color.sizeAvailability?.[size.name] ?? (color.available && size.available); return <button key={size.name} onClick={() => setColors(colors.map((item, i) => i === colorIndex ? { ...item, sizeAvailability: { ...item.sizeAvailability, [size.name]: !available }, available: true } : item))} className={`rounded-lg px-2 py-1 text-xs ${available ? 'availability-available' : 'availability-unavailable'}`}>{size.name}: {available ? 'متوفر' : 'غير متوفر'}</button>; })}</div><label className="mt-2 flex items-center gap-2 text-xs text-charcoal-500 cursor-pointer"><ImagePlus size={16} /> رفع صور هذا اللون (اختياري)<input type="file" accept="image/*" multiple className="hidden" onChange={(e) => readImages(e.target.files, (images) => setColors(colors.map((item, i) => i === colorIndex ? { ...item, image: images[0] || item.image, images: images.length ? images : item.images } : item)))} /></label>{(color.images?.length ? color.images : color.image ? [color.image] : []).map((image) => <img key={image} src={image} alt={color.name} className="mt-2 mr-2 inline-block w-14 h-16 rounded-lg object-cover" />)}</div>)}</div><button onClick={() => setColors([...colors, { name: '', available: true, image: product.image, images: product.image ? [product.image] : [], sizeAvailability: Object.fromEntries(sizes.map((size) => [size.name, true])) }])} className="mt-2 text-xs text-ora-700">+ إضافة لون</button></div>
       </div>;
     })}</div>}
-    <button onClick={() => void onSave()} className="w-full mt-6 py-4 rounded-xl bg-[#2E3220] text-white font-bold">حفظ تعديلات المنتجات</button>
+    <button disabled={saving} onClick={() => void onSave()} className="w-full mt-6 py-4 rounded-xl bg-[#2E3220] text-white font-bold transition-opacity disabled:cursor-wait disabled:opacity-60">{saving ? 'جارٍ الحفظ...' : 'حفظ تعديلات المنتجات'}</button>
   </>;
 }
 
@@ -233,12 +272,14 @@ function createEmptyProduct(id: number): Product {
     name: '',
     nameAr: '',
     category: '',
+    productType: '',
     colorName: '',
     price: 0,
     originalPrice: 0,
     rating: 5,
     reviews: 0,
     badge: '',
+    season: '',
     image: '',
     images: [],
     sizes: [{ name: '', available: true }],

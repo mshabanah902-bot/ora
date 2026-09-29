@@ -9,7 +9,7 @@ export default function Collections({ collections = [], onSelectCollection }: { 
   const { language, t } = useLanguage();
 
   return (
-    <section id="collections" ref={ref} className="py-20 sm:py-28 bg-white relative overflow-hidden">
+    <section id="collections" ref={ref} dir={language === 'en' ? 'ltr' : 'rtl'} className="py-20 sm:py-28 bg-white/90 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12">
@@ -19,7 +19,7 @@ export default function Collections({ collections = [], onSelectCollection }: { 
               animate={inView ? { opacity: 1, y: 0 } : {}}
               className="inline-block text-xs font-semibold text-ora-600 uppercase tracking-[0.25em] mb-3"
             >
-              {language === 'he' ? t('collections') : 'ORA Collections'}
+              {t('collections')}
             </motion.span>
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
@@ -27,7 +27,7 @@ export default function Collections({ collections = [], onSelectCollection }: { 
               transition={{ delay: 0.1 }}
               className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-charcoal-900 tracking-tight"
             >
-              {language === 'he' ? t('browseWorld') : <>تصفــح <span className="gradient-text">عالمنا</span></>}
+              {t('browseWorld')}
             </motion.h2>
           </div>
         </div>
@@ -47,7 +47,7 @@ export default function Collections({ collections = [], onSelectCollection }: { 
               {/* Image */}
               <img
                 src={col.image}
-                alt={`${col.title} Collection — ${col.subtitle}`}
+                alt={`${col.title} ${t('collections')}`}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 loading="lazy"
               />
@@ -58,33 +58,33 @@ export default function Collections({ collections = [], onSelectCollection }: { 
               {/* ============================================================== */}
               {/* الحاوية العلوية: تم تحويل كافة ألوان النصوص الفرعية إلى الأبيض الناصع */}
               {/* ============================================================== */}
-              <div className="absolute top-0 left-0 right-0 p-6 flex flex-col gap-1 text-left">
+              <div className={`absolute top-0 inset-x-0 p-6 flex flex-col gap-1 ${language === 'en' ? 'text-left' : 'text-right'}`}>
                 {/* المقاسات باللون الأبيض */}
                 <span className="text-[11px] font-bold text-white uppercase tracking-widest opacity-90">
                   {col.items}
                 </span>
 
                 {/* الاسم العربي والوصف باللون الأبيض ومحاذاة لليمين */}
-                <div className="text-right" dir="rtl">
+                <div className={language === 'en' ? 'text-left' : 'text-right'} dir={language === 'en' ? 'ltr' : 'rtl'}>
                   <span className="text-sm text-white font-arabic font-bold drop-shadow-sm">
-                    {col.titleAr}
+                    {language === 'ar' ? col.titleAr : col.title}
                   </span>
                   <p className="text-xs text-white/90 mt-1 font-medium drop-shadow-sm">
-                    {col.subtitle}
+                    {language === 'ar' ? col.subtitle : t('collectionPiece')}
                   </p>
                 </div>
 
                 {/* زر Explore الحركي باللون الأبيض المستقر */}
-                <div className="flex items-center gap-1.5 !text-black group-hover:!text-black transition-colors mt-3 w-fit">
-                  <span className="text-[11px] font-bold uppercase tracking-wider !text-black">{language === 'he' ? t('exploreCollection') : 'Explore Collection'}</span>
-                  <ArrowUpRight className="w-3.5 h-3.5 !text-black group-hover:!text-black group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
+                <div className="flex items-center gap-1.5 text-white group-hover:text-ora-300 transition-colors mt-3 w-fit">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">{t('exploreCollection')}</span>
+                  <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
                 </div>
               </div>
 
               {/* ============================================================== */}
               {/* الحاوية السفلية: الاسم الإنجليزي باللون الأبيض الثابت */}
               {/* ============================================================== */}
-              <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8 flex flex-col justify-end">
+              <div className="absolute bottom-0 inset-x-0 p-6 sm:p-8 flex flex-col justify-end">
                 <h3 className="text-3xl sm:text-4xl font-extrabold text-white tracking-wide drop-shadow-md">
                   {col.title}
                 </h3>

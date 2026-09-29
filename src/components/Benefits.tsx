@@ -25,9 +25,11 @@ const featuresData = [
 export default function Features({ content }: { content: SiteContent['story'] }) {
   const { ref, inView } = useScrollReveal(0.05);
   const { language, t } = useLanguage();
+  const featureTitleKeys = ['featureTitle1', 'featureTitle2', 'featureTitle3'];
+  const featureDescriptionKeys = ['featureDescription1', 'featureDescription2', 'featureDescription3'];
 
   return (
-    <section id="features" ref={ref} className="py-24 bg-[#faf8f5] relative overflow-hidden">
+    <section id="features" ref={ref} dir={language === 'en' ? 'ltr' : 'rtl'} className="py-24 bg-[#faf8f5]/88 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           
@@ -57,13 +59,13 @@ export default function Features({ content }: { content: SiteContent['story'] })
           </div>
 
           {/* القسم الأيسر — النصوص والعناوين المحدثة باللون الزيتي المكتوب #2E3220 */}
-          <div className="text-right" dir="rtl">
+          <div className={language === 'en' ? 'text-left' : 'text-right'} dir={language === 'en' ? 'ltr' : 'rtl'}>
             <motion.span 
               initial={{ opacity: 0 }}
               animate={inView ? { opacity: 1 } : {}}
               className="text-xs font-bold uppercase tracking-widest text-[#a98a6a]"
             >
-            {language === 'he' ? t('designStory') : content.eyebrow}
+            {language === 'ar' ? content.eyebrow : t('storyEyebrow')}
             </motion.span>
             
       <motion.h2 
@@ -73,8 +75,8 @@ export default function Features({ content }: { content: SiteContent['story'] })
   /* قمنا بتصغير الأحجام قليلاً وإضافة leading-tight لمنع تداخل الحروف */
   className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight mt-2 mb-4 text-[#2E3220] leading-tight"
 >
-  {language === 'he' ? t('notJustClothes') : content.title} <br />
-  <span className="gradient-text">{language === 'he' ? t('details') : content.highlight}</span>
+  {language === 'ar' ? content.title : t('storyTitle')} <br />
+  <span className="gradient-text">{language === 'ar' ? content.highlight : t('storyHighlight')}</span>
 </motion.h2>
             <motion.p 
               initial={{ opacity: 0 }}
@@ -82,7 +84,7 @@ export default function Features({ content }: { content: SiteContent['story'] })
               transition={{ delay: 0.2 }}
               className="text-sm sm:text-base leading-relaxed mb-12 text-[#2E3220]/75"
             >
-              {language === 'he' ? 'תשוקה מתמשכת שעוצבה בקפידה מחוטים איכותיים, כדי להתאים לצעדים היומיומיים הבטוחים שלך ולהעניק נוכחות ייחודית.' : content.description}
+              {language === 'ar' ? content.description : t('storyDescription')}
             </motion.p>
 
             {/* مصفوفة المميزات الرأسية */}
@@ -102,15 +104,9 @@ export default function Features({ content }: { content: SiteContent['story'] })
                   
                   {/* النصوص الفرعية بلونك المحدد [#2E3220] */}
                   <div>
-                    <h3 className="font-bold text-base mb-1 transition-colors text-[#2E3220] group-hover:text-[#a98a6a]">
-                      {language === 'he' ? ['בדים יוקרתיים וברי-קיימא', 'עיצוב בעל זהות', 'ידידותי לסביבה'][index] : feat.title}
-                    </h3>
+                    <h3 className="font-bold text-base mb-1 transition-colors text-[#2E3220] group-hover:text-[#a98a6a]">{language === 'ar' ? feat.title : t(featureTitleKeys[index] || 'featureTitle1')}</h3>
                     <p className="text-xs sm:text-sm leading-relaxed text-[#2E3220]/70">
-                      {language === 'he' ? [
-                        'אנו בוחרים את חומרי הגלם שלנו בקפידה ממקורות בני-קיימא, לנוחות לאורך זמן ולמראה מודרני ומדויק.',
-                        'הפריטים שלנו חורגים מהשגרה; כל עיצוב מספר סיפור ייחודי ומדגיש את הנוכחות הבטוחה שלך.',
-                        'פתרונות מעשיים וברי-קיימא שמתאימים ליום העמוס שלך ומחברים אלגנטיות עם נוחות.'
-                      ][index] : feat.description}
+                      {language === 'ar' ? feat.description : t(featureDescriptionKeys[index] || 'featureDescription1')}
                     </p>
                   </div>
                 </motion.div>

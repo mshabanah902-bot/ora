@@ -3,16 +3,28 @@ export type Product = {
   name: string;
   nameAr: string;
   category: string;
+  productType?: string;
+  displayOrder?: number;
   colorName: string;
   price: number;
   originalPrice: number;
   rating: number;
   reviews: number;
   badge: string;
+  season?: 'winter' | 'summer' | 'autumn' | '';
   image: string;
   images: { color: string; img: string }[];
   sizes: { name: string; available: boolean }[];
   colors: { name: string; available: boolean; image: string; images?: string[]; sizeAvailability?: Record<string, boolean> }[];
+};
+
+export const defaultProductSeasons: Record<number, NonNullable<Product['season']>> = {
+  1: 'winter',
+  2: 'summer',
+  3: 'autumn',
+  4: 'autumn',
+  5: 'winter',
+  6: 'summer',
 };
 
 export const defaultProducts: Product[] = [
@@ -26,6 +38,7 @@ export const defaultProducts: Product[] = [
   ].map(([id, name, nameAr, colorName, price, originalPrice, badge, image, colors]) => ({
     id: id as number, name: name as string, nameAr: nameAr as string, category: name as string, colorName: colorName as string,
     price: price as number, originalPrice: originalPrice as number, rating: 4.8, reviews: 500, badge: badge as string, image: image as string,
+    season: defaultProductSeasons[id as number] || '',
     images: (colors as [string, string][]).map(([color, img]) => ({ color, img })),
     sizes: (id === 4 || id === 5 || id === 6 ? ['One Size'] : ['S', 'M', 'L', 'XL']).map((name) => ({ name, available: true })),
     colors: (colors as [string, string][]).map(([name, image]) => ({ name, image, available: true })),

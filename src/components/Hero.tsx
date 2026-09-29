@@ -7,12 +7,12 @@ import { useLanguage } from '../i18n';
 export default function Hero({ content }: { content: SiteContent['hero'] }) {
   const { language, t } = useLanguage();
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden gradient-hero noise-bg">
+    <section id="home" className="relative min-h-screen flex items-center overflow-hidden gradient-hero noise-bg">
       {/* Ambient circles */}
       <div className="absolute top-20 right-1/4 w-96 h-96 bg-ora-300/20 rounded-full blur-3xl float-animation" />
       <div className="absolute bottom-20 left-1/4 w-72 h-72 bg-ora-400/15 rounded-full blur-3xl float-animation" style={{ animationDelay: '3s' }} />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16 lg:pt-32 lg:pb-20 w-full">
+      <div dir={language === 'en' ? 'ltr' : 'rtl'} className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-16 lg:pt-36 lg:pb-20 w-full">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
           {/* Left Content */}
           <div className="max-w-xl">
@@ -24,7 +24,7 @@ export default function Hero({ content }: { content: SiteContent['hero'] }) {
             >
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               <span className="text-xs font-semibold text-charcoal-700 tracking-wide uppercase">
-                {language === 'he' ? t('newCollection') : content.eyebrow}
+                {language === 'ar' ? content.eyebrow : t('newCollection')}
               </span>
             </motion.div>
 
@@ -33,21 +33,20 @@ export default function Hero({ content }: { content: SiteContent['hero'] }) {
   animate={{ opacity: 1, y: 0 }}
   transition={{ duration: 0.7, delay: 0.3 }}
   /* التعديل: حذفنا كلاس text-balance وكلاس tracking-tight تماماً وأضفنا w-full text-right */
-  className="text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-palestine-bold leading-[1.5] sm:leading-[1.4] text-right w-full block overflow-visible"
+  className={`text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-palestine-bold leading-[1.5] sm:leading-[1.4] ${language === 'en' ? 'text-left' : 'text-right'} w-full block overflow-visible`}
 >
-  <span className="text-charcoal-900 block whitespace-normal">{content.titleLine1}</span>
-  <span className="gradient-text block mt-2 whitespace-normal">{content.titleLine2}</span>
-  <span className="text-charcoal-900 block mt-2 whitespace-normal">{content.titleLine3}</span>
+  <span className="text-charcoal-900 block whitespace-normal">{language === 'ar' ? content.titleLine1 : t('heroLine1')}</span>
+  <span className="gradient-text block mt-2 whitespace-normal">{language === 'ar' ? content.titleLine2 : t('heroLine2')}</span>
+  <span className="text-charcoal-900 block mt-2 whitespace-normal">{language === 'ar' ? content.titleLine3 : t('heroLine3')}</span>
 </motion.h1>
             <motion.p
   initial={{ opacity: 0, y: 20 }}
   animate={{ opacity: 1, y: 0 }}
   transition={{ duration: 0.6, delay: 0.5 }}
   /* التعديل: تفعيل التوجيه لليمين dir="rtl" مع leading-relaxed لراحة العين وحذف التضييق */
-  className="mt-6 text-base sm:text-lg text-charcoal-500 leading-relaxed max-w-xl text-right font-medium"
-  dir="rtl"
+  className={`mt-6 text-base sm:text-lg text-charcoal-500 leading-relaxed max-w-xl ${language === 'en' ? 'text-left' : 'text-right'} font-medium`}
 >
- {language === 'he' ? t('heroDescription') : content.description}
+ {language === 'ar' ? content.description : t('heroDescription')}
 </motion.p>
 
             <motion.div
@@ -63,7 +62,7 @@ export default function Hero({ content }: { content: SiteContent['hero'] }) {
                 whileTap="tap"
                 className="group inline-flex items-center gap-3 px-7 py-3.5 bg-white/55 text-black font-semibold text-sm rounded-full border border-black/10 hover:bg-white/80 transition-all duration-300 hover:shadow-xl hover:shadow-black/10 cursor-pointer"
               >
-                <span className="!text-black">{language === 'he' ? t('browseCollection') : content.primaryButton}</span>
+                <span className="!text-black">{language === 'ar' ? content.primaryButton : t('browseCollection')}</span>
                 
                 {/* السهم يتحرك لليمين بنعومة فيزيائية عند الـ hover */}
                 <motion.div
@@ -108,7 +107,7 @@ export default function Hero({ content }: { content: SiteContent['hero'] }) {
                   }}
                   transition={{ type: "spring", stiffness: 300 }}
                 >
-                  {language === 'he' ? t('lookbook') : content.secondaryButton}
+                  {language === 'ar' ? content.secondaryButton : t('heroSecondary')}
                 </motion.span>
               </motion.a>
             </motion.div>
@@ -121,9 +120,9 @@ export default function Hero({ content }: { content: SiteContent['hero'] }) {
               className="mt-12 flex items-center gap-8 sm:gap-12"
             >
               {[
-                { value: '1k+', label: language === 'he' ? t('happyCustomers') : 'Happy Customers' },
-                { value: '50+', label: language === 'he' ? t('uniqueDesigns') : 'Unique Designs' },
-                { value: '4.9★', label: language === 'he' ? t('averageRating') : 'Average Rating' },
+                { value: '1k+', label: t('happyCustomers') },
+                { value: '50+', label: t('uniqueDesigns') },
+                { value: '4.9★', label: t('averageRating') },
               ].map((stat, i) => (
                 <div key={i} className="text-center sm:text-left">
                   <div className="text-xl sm:text-2xl font-bold text-charcoal-900">{stat.value}</div>
@@ -156,7 +155,7 @@ export default function Hero({ content }: { content: SiteContent['hero'] }) {
                 initial={{ opacity: 0, x: -30, y: 30 }}
                 animate={{ opacity: 1, x: 0, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.8 }}
-                className="absolute -left-16 sm:-left-20 bottom-12 w-36 sm:w-44 aspect-[3/4] rounded-2xl overflow-hidden shadow-xl border-4 border-ora-50"
+                className="absolute left-2 sm:left-0 lg:-left-8 bottom-12 w-32 sm:w-44 aspect-[3/4] rounded-2xl overflow-hidden shadow-xl border-4 border-ora-50"
               >
                 <img
                   src={content.secondaryImage}
@@ -171,15 +170,15 @@ export default function Hero({ content }: { content: SiteContent['hero'] }) {
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5, delay: 1.2, type: 'spring' }}
-                className="absolute -right-4 sm:right-0 top-8 glass rounded-2xl px-4 py-3 shadow-lg"
+                className="absolute right-2 top-8 glass rounded-xl px-3 py-2.5 shadow-lg sm:right-0"
               >
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full gradient-gold flex items-center justify-center">
                     <span className="text-white text-xs">✦</span>
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-charcoal-900">Premium Quality</div>
-                    <div className="text-[10px] text-charcoal-400">100% Organic Fabrics</div>
+                    <div className="text-xs font-bold text-charcoal-900">{t('premiumQuality')}</div>
+                    <div className="text-[10px] text-charcoal-400">{t('organicFabrics')}</div>
                   </div>
                 </div>
               </motion.div>
@@ -196,7 +195,7 @@ export default function Hero({ content }: { content: SiteContent['hero'] }) {
         transition={{ delay: 2 }}
         className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
       >
-        <span className="text-[10px] text-charcoal-400 uppercase">Scroll Down</span>
+        <span className="text-[10px] text-charcoal-400 uppercase">{t('scrollDown')}</span>
       </motion.div>
     </section>
   );
