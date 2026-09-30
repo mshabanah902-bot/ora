@@ -457,6 +457,7 @@ function OrdersTab({ orders, loading, password, onOrdersChange, onError }: { ord
   const [month, setMonth] = useState('');
   const [day, setDay] = useState('');
   const [category, setCategory] = useState('');
+  const [savingStatusIds, setSavingStatusIds] = useState<Set<number>>(() => new Set());
   const categories = useMemo(() => [...new Set(orders.flatMap((order) => order.items.map((item) => item.name)))], [orders]);
   const filtered = useMemo(() => orders.filter((order) => {
     const date = new Date(order.createdAt);
@@ -492,11 +493,18 @@ function OrdersTab({ orders, loading, password, onOrdersChange, onError }: { ord
 
   const changeStatus = async (order: Order, status: OrderStatus) => {
     onError('');
+    setSavingStatusIds((current) => new Set(current).add(order.id));
     try {
       await updateOrderStatusInApi(order.id, status, password);
-      onOrdersChange((current) => current.map((item) => item.id === order.id ? { ...item, status } : item));
+      onOrdersChange(await loadOrdersFromApi(password) as Order[]);
     } catch {
-      onError('تعذر تحديث حالة الطلب. حاول مرة أخرى.');
+      onError('تعذر حفظ حالة الطلب في قاعدة البيانات. لم يتم تأكيد التغيير.');
+    } finally {
+      setSavingStatusIds((current) => {
+        const next = new Set(current);
+        next.delete(order.id);
+        return next;
+      });
     }
   };
 
@@ -553,9 +561,10 @@ function OrdersTab({ orders, loading, password, onOrdersChange, onError }: { ord
         </div>
         <div className="mt-3 flex items-center gap-2">
           <label htmlFor={`order-status-${order.id}`} className="shrink-0 text-xs font-semibold">حالة الطلب</label>
-          <select id={`order-status-${order.id}`} value={status} onChange={(event) => void changeStatus(order, event.target.value as OrderStatus)} className="field min-w-0 flex-1 py-2 text-xs">
+          <select id={`order-status-${order.id}`} value={status} disabled={savingStatusIds.has(order.id)} onChange={(event) => void changeStatus(order, event.target.value as OrderStatus)} className="field min-w-0 flex-1 py-2 text-xs disabled:cursor-wait disabled:opacity-60">
             {orderStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
+          {savingStatusIds.has(order.id) && <span className="shrink-0 text-[11px] text-charcoal-500">جارٍ الحفظ...</span>}
           <button type="button" onClick={() => void removeOrder(order)} aria-label={`حذف طلب ${order.customer.name}`} title="حذف الطلب" className="shrink-0 rounded-lg border border-red-200 p-2 text-red-700 hover:bg-red-50"><Trash2 size={17} /></button>
         </div>
       </article>;

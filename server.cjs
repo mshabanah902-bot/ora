@@ -72,8 +72,11 @@ const server = http.createServer(async (req, res) => {
       if (!validStatuses.includes(status)) return reply(res, 400, { error: 'Invalid order status' });
       const rows = await supabase(`orders?id=eq.${orderMatch[1]}&select=payload`, { method: 'GET' });
       if (!rows.length) return reply(res, 404, { error: 'Order not found' });
-      await supabase(`orders?id=eq.${orderMatch[1]}`, { method: 'PATCH', body: JSON.stringify({ payload: { ...rows[0].payload, status } }) });
-      return reply(res, 200, { updated: true });
+      const updatedRows = await supabase(`orders?id=eq.${orderMatch[1]}&select=id,payload`, { method: 'PATCH', body: JSON.stringify({ payload: { ...rows[0].payload, status } }) });
+      if (!updatedRows?.some((row) => row.payload?.status === status)) {
+        throw new Error('Supabase did not confirm the order status update');
+      }
+      return reply(res, 200, { updated: true, status });
     }
     if (orderMatch && req.method === 'DELETE') {
       if (req.headers['x-admin-password'] !== ADMIN_PASSWORD) return reply(res, 401, { error: 'Unauthorized' });
