@@ -3,25 +3,6 @@ import { useScrollReveal } from '../hooks/useScrollReveal';
 import type { SiteContent } from '../data/siteContent';
 import { useLanguage } from '../i18n';
 
-// مصفوفة مميزات علامة ORA التجارية
-const featuresData = [
-  {
-    id: '01',
-    title: 'أقمشة فاخرة مستدامة',
-    description: 'ننتقي خاماتنا بعناية من مصادر مستدامة لنضمن لكِ راحة تدوم طويلاً، مع الحفاظ على مرونة النسيج والـمظهر العصري المتقن.'
-  },
-  {
-    id: '02',
-    title: 'تصميم يحمل هوية',
-    description: 'تخرج قطعنا عن النمطية والتقليد؛ حيث يحمل كل تصميم حكاية فريدة وتفاصيل فنية تبرز حضورك الواثق والمتميز.'
-  },
-  {
-    id: '03',
-    title: 'صديقة لأقصى الأدلة',
-    description: 'حلول عملية ومستدامة تلائم تفاصيل يومك المزدحم، لتتحركي بخطى مريحة وثابتة تجمع بين الأناقة المطلقة والعملية الجذابة.'
-  }
-];
-
 export default function Features({ content }: { content: SiteContent['story'] }) {
   const { ref, inView } = useScrollReveal(0.05);
   const { language, t } = useLanguage();

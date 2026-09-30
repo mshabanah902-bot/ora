@@ -1,9 +1,10 @@
 services:
   - type: web
-    name: ora-api
+    name: ora1-amlu
     runtime: node
-    buildCommand: npm ci
+    buildCommand: npm ci && npm run build
     startCommand: npm run server
+    healthCheckPath: /health
     envVars:
       - key: SUPABASE_URL
         sync: false
@@ -11,19 +12,3 @@ services:
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
-      - key: FRONTEND_URL
-        sync: false
-  - type: static
-    name: ora-storefront
-    buildCommand: npm ci && npm run build
-    staticPublishPath: ./dist
-    headers:
-      - path: /*
-        name: Cache-Control
-        value: no-cache, no-store, must-revalidate
-    envVars:
-      - key: VITE_API_URL
-        fromService:
-          type: web
-          name: ora-api
-          property: host

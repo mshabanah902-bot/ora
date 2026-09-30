@@ -1,40 +1,11 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { AnimatePresence, motion, useInView } from 'framer-motion';
-import { Heart, ShoppingBag, Star } from 'lucide-react';
+import { Heart, ShoppingBag, Star, X } from 'lucide-react';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 import type { Product } from '../data/products';
 import type { WishlistItem } from '../App';
 import { normalizeProductType, translateProductBadge, translateProductColor, translateProductType, useLanguage } from '../i18n';
-
-const getColorHex = (name: string) => {
-  const color = name.trim().toLocaleLowerCase().replace(/[إأآ]/g, 'ا').replace(/ة/g, 'ه');
-  const colors: Record<string, string> = {
-    'ابيض': '#f5f2ed', 'أبيض': '#f5f2ed', 'white': '#f5f2ed',
-    'اسود': '#171717', 'أسود': '#171717', 'black': '#171717',
-    'كحلي': '#1d2d4b', 'navy': '#1d2d4b',
-    'زيتي': '#65705a', 'olive': '#65705a',
-    'بني غامق': '#4b2e24', 'بني داكن': '#4b2e24', 'dark brown': '#4b2e24', 'dark-brown': '#4b2e24', 'chocolate': '#4b2e24',
-    'بني فاتح': '#a47551', 'light brown': '#a47551', 'light-brown': '#a47551', 'كاراميل': '#b9825b', 'caramel': '#b9825b',
-    'بني': '#795548', 'brown': '#795548',
-    'بيج': '#d6c2a5', 'beige': '#d6c2a5',
-    'عنابي': '#7f1d32', 'burgundy': '#7f1d32',
-    'احمر': '#b91c1c', 'أحمر': '#b91c1c', 'red': '#b91c1c',
-    'ازرق': '#2563eb', 'أزرق': '#2563eb', 'blue': '#2563eb',
-    'اخضر': '#15803d', 'أخضر': '#15803d', 'green': '#15803d',
-    'رمادي': '#6b7280', 'gray': '#6b7280', 'grey': '#6b7280',
-    'موف': '#8b5cf6', 'بنفسجي': '#7c3aed', 'purple': '#7c3aed',
-    'وردي': '#ec4899', 'pink': '#ec4899',
-    'برتقالي': '#ea580c', 'orange': '#ea580c',
-    'اصفر': '#eab308', 'أصفر': '#eab308', 'yellow': '#eab308',
-    'ذهبي': '#c59b52', 'gold': '#c59b52',
-    'فضي': '#a8a29e', 'silver': '#a8a29e',
-    'موكا': '#92745f', 'mocha': '#92745f',
-  };
-  if (colors[color]) return colors[color];
-  if (color.includes('بني') || color.includes('brown')) return '#795548';
-  if (color.includes('موكا') || color.includes('mocha')) return '#92745f';
-  return '#a98a6a';
-};
+import { getProductColorHex } from '../utils/productColors';
 
 const getProductSizes = (product: Product) => product.sizes?.length
   ? product.sizes
@@ -49,28 +20,29 @@ const hasAvailableVariant = (product: Product) => {
   return product.colors.some((color) => color.available && sizes.some((size) => color.sizeAvailability?.[size.name] ?? size.available));
 };
 
+type CatalogSelection = { kind: 'season' | 'type' | 'collection'; value: string; title: string };
+
 // تم استخدام 'any' لتجاوز خطأ التايب سكربت المزعج
 function ProductCard({ product, index, onAdd, liked, onToggleWishlist, selected, onSelect }: { product: Product; index: number; onAdd: (product: Product, color: string, size: string) => void; liked: boolean; onToggleWishlist: (product: Product, color: string, size: string) => void; selected: boolean; onSelect: (productId: number) => void }) {  const { language, t } = useLanguage();
   const cardRef = useRef<HTMLDivElement>(null);
   const cardInView = useInView(cardRef, { once: true, margin: '0px 0px -8% 0px' });
   const sizes = getProductSizes(product);
   
-  const rawColors = (product as any).colors;
-  const colorOptions = rawColors?.length ? rawColors : product.images.map((item: any) => ({ name: item.color, available: true, image: item.img }));
-  const colors = [...colorOptions].sort((first: any, second: any) => {
+  const colorOptions: Product['colors'] = product.colors?.length ? product.colors : product.images.map((item) => ({ name: item.color, image: item.img, available: true }));
+  const colors = [...colorOptions].sort((first, second) => {
     const firstAvailable = first.available && sizes.some((size) => first.sizeAvailability?.[size.name] ?? size.available);
     const secondAvailable = second.available && sizes.some((size) => second.sizeAvailability?.[size.name] ?? size.available);
     return Number(secondAvailable) - Number(firstAvailable);
   });
   
   const [selectedColor, setSelectedColor] = useState(colors[0]?.name || '');
-  const activeColor = colors.find((item: any) => item.name === selectedColor) || colors[0];
+  const activeColor = colors.find((item) => item.name === selectedColor) || colors[0];
   
   const colorImages = activeColor?.images?.length
     ? activeColor.images
     : activeColor?.image
       ? [activeColor.image]
-      : product.images.filter((item: any) => item.color === selectedColor).map((item: any) => item.img);
+      : product.images.filter((item) => item.color === selectedColor).map((item) => item.img);
 
   const [imageIndex, setImageIndex] = useState(0);
   useEffect(() => setImageIndex(0), [selectedColor]);
@@ -178,7 +150,7 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist, selected,
                   setSize(nextSizes.find((entry) => entry.available)?.name || ''); 
                 }} 
                 className={`relative w-7 h-7 rounded-full transition-transform hover:scale-110 ${selected ? 'ring-2 ring-offset-2 ring-[#c59b52] scale-110' : 'border border-gray-200'} ${!hasAnySizeAvailable ? 'opacity-60 grayscale' : ''}`} 
-                style={{ backgroundColor: getColorHex(item.name) }} 
+                style={{ backgroundColor: getProductColorHex(item.name) }}
                 aria-label={`${t('color')} ${translateProductColor(item.name, language)}`}
                 title={translateProductColor(item.name, language)}
               >
@@ -194,12 +166,12 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist, selected,
   );
 }
 
-// تم استخدام 'any' هنا أيضاً لتجاوز الأخطاء
-export default function ProductShowcase({ products: initialProducts, onAdd, wishlist, onToggleWishlist }: { products: Product[]; onAdd: any; wishlist: WishlistItem[]; onToggleWishlist: any }) {
+export default function ProductShowcase({ products: initialProducts, onAdd, wishlist, onToggleWishlist }: { products: Product[]; onAdd: (product: Product, color: string, size: string) => void; wishlist: WishlistItem[]; onToggleWishlist: (product: Product, color: string, size: string) => void }) {
   const [activeCategory, setActiveCategory] = useState('الكل');
   const [activeType, setActiveType] = useState<'all' | NonNullable<Product['productType']>>('all');
   const [activeSeason, setActiveSeason] = useState<string | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+  const [categoryModal, setCategoryModal] = useState<CatalogSelection | null>(null);
   const cloudProducts = initialProducts;
   const { ref, inView } = useScrollReveal(0.05);
   const { language, t } = useLanguage();
@@ -233,34 +205,38 @@ export default function ProductShowcase({ products: initialProducts, onAdd, wish
       setActiveCategory(title || 'الكل');
       setActiveType('all');
       setActiveSeason(null);
-      document.getElementById('products')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setSelectedProductId(null);
+      setCategoryModal({ kind: 'collection', value: title, title: categories.find((category) => category.value === title)?.label || title });
     };
     document.addEventListener('ora:select-collection', selectCollection);
     return () => document.removeEventListener('ora:select-collection', selectCollection);
-  }, []);
+  }, [categories]);
 
   useEffect(() => {
     const selectSeason = (event: Event) => {
+      const season = (event as CustomEvent<string>).detail;
       setActiveCategory('الكل');
       setActiveType('all');
-      setActiveSeason((event as CustomEvent<string>).detail);
+      setActiveSeason(season);
       setSelectedProductId(null);
-      document.getElementById('products')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setCategoryModal({ kind: 'season', value: season, title: t(season) });
     };
     document.addEventListener('ora:select-season', selectSeason);
     const selectProductType = (event: Event) => {
+      const type = (event as CustomEvent<string>).detail;
       setActiveCategory('الكل');
-      setActiveType((event as CustomEvent<string>).detail);
+      setActiveType(type);
       setActiveSeason(null);
       setSelectedProductId(null);
-      document.getElementById('products')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const title = typeOptions.find((option) => option.value === type)?.label || translateProductType(type, language);
+      setCategoryModal({ kind: 'type', value: type, title });
     };
     document.addEventListener('ora:select-product-type', selectProductType);
     return () => {
       document.removeEventListener('ora:select-season', selectSeason);
       document.removeEventListener('ora:select-product-type', selectProductType);
     };
-  }, []);
+  }, [language, t, typeOptions]);
 
   useEffect(() => {
     const selectProduct = (event: Event) => {
@@ -270,6 +246,7 @@ export default function ProductShowcase({ products: initialProducts, onAdd, wish
       setActiveCategory('الكل');
       setActiveType('all');
       setActiveSeason(null);
+      setCategoryModal(null);
       setSelectedProductId(productId);
       document.getElementById('products')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
@@ -301,6 +278,20 @@ export default function ProductShowcase({ products: initialProducts, onAdd, wish
     }, 80);
     return () => window.clearTimeout(timer);
   }, [selectedProductId]);
+
+  useEffect(() => {
+    if (!categoryModal) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setCategoryModal(null);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [categoryModal]);
 
   return (
     <section id="products" ref={ref} className="py-20 sm:py-28 bg-white/90 relative">
@@ -360,6 +351,29 @@ export default function ProductShowcase({ products: initialProducts, onAdd, wish
           onToggleWishlist={onToggleWishlist}
         />
       )}
+      <AnimatePresence>
+        {categoryModal && (
+          <motion.div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/60 p-3 sm:p-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(event) => event.target === event.currentTarget && setCategoryModal(null)}>
+            <motion.div role="dialog" aria-modal="true" aria-labelledby="catalog-category-title" dir={language === 'en' ? 'ltr' : 'rtl'} className="flex max-h-[92vh] w-full max-w-7xl flex-col overflow-hidden rounded-xl bg-[#faf8f5] shadow-2xl" initial={{ y: 18, scale: 0.98 }} animate={{ y: 0, scale: 1 }} exit={{ y: 12, scale: 0.98 }}>
+              <header className="flex shrink-0 items-center justify-between gap-4 border-b border-ora-200 px-5 py-4 sm:px-7">
+                <div>
+                  <h2 id="catalog-category-title" className="text-xl font-bold text-charcoal-900">{categoryModal.title}</h2>
+                  <p className="mt-1 text-sm text-charcoal-500">{visible.length} {t('seasonalCount')}</p>
+                </div>
+                <button type="button" onClick={() => setCategoryModal(null)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-charcoal-700 shadow-sm" aria-label={t('close')}><X size={20} /></button>
+              </header>
+              <div className="overflow-y-auto p-4 sm:p-6">
+                <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 xl:grid-cols-3">
+                  {visible.map((product, index) => (
+                    <ProductCard key={product.id} product={product} index={index} onAdd={onAdd} liked={wishlist.some((item) => item.id === product.id)} onToggleWishlist={onToggleWishlist} selected={false} onSelect={setSelectedProductId} />
+                  ))}
+                  {!visible.length && <p className="col-span-full py-12 text-center text-charcoal-500">{t('noProducts')}</p>}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }
@@ -373,7 +387,7 @@ function ProductDetails({ product, liked, onClose, onAdd, onToggleWishlist }: {
 }) {
   const { language, t } = useLanguage();
   const sizes = getProductSizes(product);
-  const colorOptions = product.colors?.length ? product.colors : product.images.map((item) => ({ name: item.color, image: item.img, available: true }));
+  const colorOptions: Product['colors'] = product.colors?.length ? product.colors : product.images.map((item) => ({ name: item.color, image: item.img, available: true }));
   const colors = [...colorOptions].sort((first, second) => {
     const firstAvailable = first.available && sizes.some((size) => first.sizeAvailability?.[size.name] ?? size.available);
     const secondAvailable = second.available && sizes.some((size) => second.sizeAvailability?.[size.name] ?? size.available);

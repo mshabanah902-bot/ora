@@ -48,8 +48,9 @@ export async function deleteAllOrders(password: string) {
 }
 
 async function adminOrdersRequest(path: string, method: string, password = '', body?: unknown) {
-  const configuredUrl = import.meta.env.VITE_API_URL || 'http://localhost:4173';
-  const baseUrl = /^https?:\/\//.test(configuredUrl) ? configuredUrl : `https://${configuredUrl}`;
+  const configuredUrl = import.meta.env.VITE_API_URL;
+  const apiUrl = configuredUrl || (isLocalDevRuntime() ? 'http://localhost:4173' : window.location.origin);
+  const baseUrl = /^https?:\/\//.test(apiUrl) ? apiUrl : `https://${apiUrl}`;
 
   try {
     const response = await fetch(`${baseUrl.replace(/\/$/, '')}${path}`, {

@@ -1,10 +1,12 @@
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
 
 const PORT = process.env.PORT || 4173;
+const DIST_DIR = path.join(__dirname, 'dist');
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'ora123';
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required');
 function body(req) {
   return new Promise((resolve, reject) => {
     let raw = '';
@@ -13,6 +15,7 @@ function body(req) {
   });
 }
 async function supabase(pathname, options = {}) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error('Supabase server configuration is missing');
   const response = await fetch(`${SUPABASE_URL}/rest/v1/${pathname}`, {
     ...options,
     headers: { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=representation', ...(options.headers || {}) },
@@ -27,11 +30,8 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
   try {
-    if (req.url === '/' && req.method === 'GET') {
-      return reply(res, 200, { service: 'ora-api', status: 'ok', endpoints: ['/health', '/api/products', '/api/settings', '/api/orders'] });
-    }
     if (req.url === '/health' && req.method === 'GET') {
-      return reply(res, 200, { ok: true, storage: 'supabase' });
+      return reply(res, 200, { ok: true, storage: 'supabase', configured: Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) });
     }
     if (req.url === '/api/products' && req.method === 'GET') {
       const rows = await supabase('store_settings?key=eq.products&select=value');
@@ -86,11 +86,43 @@ const server = http.createServer(async (req, res) => {
       await supabase('orders', { method: 'POST', body: JSON.stringify({ payload: order }) });
       return reply(res, 201, { saved: true });
     }
-    return reply(res, 404, { error: 'Not found' });
+    if (req.url.startsWith('/api/')) return reply(res, 404, { error: 'Not found' });
+    return serveStatic(req, res);
   } catch (error) {
     console.error(error);
     return reply(res, 500, { error: 'Server error' });
   }
 });
+function serveStatic(req, res) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return reply(res, 405, { error: 'Method not allowed' });
+  let pathname;
+  try {
+    pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+  } catch {
+    return reply(res, 400, { error: 'Invalid path' });
+  }
+  let filePath = path.resolve(DIST_DIR, `.${pathname}`);
+  if (filePath !== DIST_DIR && !filePath.startsWith(`${DIST_DIR}${path.sep}`)) return reply(res, 403, { error: 'Forbidden' });
+  if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+    if (path.extname(pathname)) return reply(res, 404, { error: 'Not found' });
+    filePath = path.join(DIST_DIR, 'index.html');
+  }
+  const contentTypes = {
+    '.css': 'text/css; charset=utf-8',
+    '.html': 'text/html; charset=utf-8',
+    '.ico': 'image/x-icon',
+    '.jpeg': 'image/jpeg',
+    '.jpg': 'image/jpeg',
+    '.js': 'text/javascript; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
+    '.png': 'image/png',
+    '.svg': 'image/svg+xml',
+    '.webp': 'image/webp',
+    '.woff2': 'font/woff2',
+  };
+  res.writeHead(200, { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Content-Type': contentTypes[path.extname(filePath)] || 'application/octet-stream' });
+  if (req.method === 'HEAD') return res.end();
+  fs.createReadStream(filePath).on('error', () => res.destroy()).pipe(res);
+}
 function reply(res, status, data) { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(data)); }
-server.listen(PORT, () => console.log(`ORA API listening on port ${PORT} (Supabase)`));
+server.listen(PORT, () => console.log(`ORA storefront and API listening on port ${PORT}`));

@@ -183,7 +183,7 @@ export default function App() {
     document.dispatchEvent(new Event('ora:cart-added'));
   };
   const changeQuantity = (lineId: string, delta: number) => setCart((items) => items.map((item) => item.lineId === lineId ? { ...item, quantity: item.quantity + delta } : item).filter((item) => item.quantity > 0));
-  const saveProducts = async (next: Product[]) => {
+  const saveProducts = async (next: Product[] = products) => {
     const ordered = normalizeProducts(next).map((product, index) => ({ ...product, displayOrder: index }));
     const saved = await persistProducts(ordered);
     const savedOrdered = normalizeProducts(saved).sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));

@@ -38,7 +38,7 @@ export default function Collections({ collections = [], onSelectCollection }: { 
             <motion.a
               key={col.title}
               href="#products"
-              onClick={() => onSelectCollection?.(col.title)}
+              onClick={(event) => { event.preventDefault(); onSelectCollection?.(col.title); }}
               initial={{ opacity: 0, y: 30 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.2 + i * 0.15 }}

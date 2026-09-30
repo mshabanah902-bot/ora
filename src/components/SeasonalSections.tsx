@@ -5,6 +5,7 @@ import type { CSSProperties } from 'react';
 import type { Product } from '../data/products';
 import type { SiteContent } from '../data/siteContent';
 import { normalizeProductType, translateProductColor, translateProductType, useLanguage } from '../i18n';
+import { getProductColorHex } from '../utils/productColors';
 
 const seasons = [
   { id: 'winter', titleKey: 'winter', subtitleKey: 'winterSubtitle', Icon: Snowflake },
@@ -18,19 +19,6 @@ function selectSeason(season: string) {
 
 function selectProduct(productId: number) {
   document.dispatchEvent(new CustomEvent('ora:select-product', { detail: productId }));
-}
-
-function getOfferColorHex(name: string) {
-  const color = name.toLowerCase();
-  if (color.includes('أبيض') || color.includes('ابيض') || color.includes('white')) return '#f5f2ed';
-  if (color.includes('أسود') || color.includes('اسود') || color.includes('black')) return '#171717';
-  if (color.includes('كحلي') || color.includes('navy')) return '#1d2d4b';
-  if (color.includes('أحمر') || color.includes('عنابي') || color.includes('red') || color.includes('burgundy')) return '#8a2436';
-  if (color.includes('زيتي') || color.includes('olive') || color.includes('أخضر') || color.includes('اخضر')) return '#65705a';
-  if (color.includes('رمادي') || color.includes('gray') || color.includes('grey')) return '#848484';
-  if (color.includes('بيج') || color.includes('beige')) return '#d6c2a5';
-  if (color.includes('بني') || color.includes('brown') || color.includes('موكا')) return '#795548';
-  return '#a98a6a';
 }
 
 export function SeasonalSections({ products, copy }: { products: Product[]; copy: SiteContent['shopSections']['seasons'] }) {
@@ -49,8 +37,8 @@ export function SeasonalSections({ products, copy }: { products: Product[]; copy
             const seasonalProducts = products.filter((product) => product.season === id);
             const image = seasonalProducts[0]?.image;
             const defaultTitle = t(titleKey);
-            const titleField = { winter: 'winterTitle', summer: 'summerTitle', autumn: 'autumnTitle' }[id];
-            const descriptionField = { winter: 'winterDescription', summer: 'summerDescription', autumn: 'autumnDescription' }[id];
+            const titleField = ({ winter: 'winterTitle', summer: 'summerTitle', autumn: 'autumnTitle' } as const)[id];
+            const descriptionField = ({ winter: 'winterDescription', summer: 'summerDescription', autumn: 'autumnDescription' } as const)[id];
             const cardTitle = language === 'ar' ? copy[titleField] : defaultTitle;
             const description = language === 'ar' ? copy[descriptionField] : t(subtitleKey);
             return (
@@ -181,7 +169,7 @@ function OfferProductCard({ product, liked, onSelect, onAdd, onToggleWishlist }:
         <div className="mt-3 flex flex-wrap gap-1.5">
           {colors.map((color) => {
             const hasAvailableSize = Boolean(color.available && sizes.some((size) => color.sizeAvailability?.[size.name] ?? size.available));
-            return <button key={color.name} type="button" disabled={!hasAvailableSize} onClick={() => setSelectedColor(color.name)} className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] disabled:cursor-not-allowed disabled:opacity-40 ${selectedColor === color.name ? 'border-ora-300 bg-white/15' : 'border-white/20 bg-white/5'}`} aria-label={`${t('color')} ${translateProductColor(color.name, language)}`} aria-pressed={selectedColor === color.name}><span className="h-3.5 w-3.5 shrink-0 rounded-full border border-white/60" style={{ backgroundColor: getOfferColorHex(color.name) }} />{translateProductColor(color.name, language)}</button>;
+              return <button key={color.name} type="button" disabled={!hasAvailableSize} onClick={() => setSelectedColor(color.name)} className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] disabled:cursor-not-allowed disabled:opacity-40 ${selectedColor === color.name ? 'border-ora-300 bg-white/15' : 'border-white/20 bg-white/5'}`} aria-label={`${t('color')} ${translateProductColor(color.name, language)}`} aria-pressed={selectedColor === color.name}><span className="h-3.5 w-3.5 shrink-0 rounded-full border border-white/60" style={{ backgroundColor: getProductColorHex(color.name) }} />{translateProductColor(color.name, language)}</button>;
           })}
         </div>
         <p className="mt-3 text-[11px] text-white/65">{t('chooseSize')}</p>
