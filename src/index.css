@@ -1,4 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300..700;1,300..700&display=swap');
 @import "tailwindcss";
+.font-jost {
+  font-family: 'Jost', sans-serif !important;
+}
 
 @font-face {
   font-family: 'CustomArabic';
@@ -32,9 +36,9 @@
   --color-charcoal-900: #1e1f22;
   --color-charcoal-950: #111214;
 
-  /* 2. دمج خط فلسطين للعربي وخط Inter للإنجليزي معاً بالترتيب الصحيح */
-  --font-display: 'CustomArabic', 'Inter', system-ui, -apple-system, sans-serif;
-  --font-body: 'CustomArabic', 'Inter', system-ui, -apple-system, sans-serif;
+  /* Keep the custom Arabic font and use Jost for Latin text. */
+  --font-display: 'CustomArabic', 'Jost', sans-serif;
+  --font-body: 'CustomArabic', 'Jost', sans-serif;
 }
 
 @layer base {
@@ -197,6 +201,16 @@ body {
   scroll-snap-align: center;
   box-shadow: 0 8px 24px rgba(30, 31, 34, 0.12);
   transition: box-shadow 220ms ease, transform 220ms ease;
+}
+
+.seasonal-tile {
+  background: rgba(46, 50, 32, 0.7);
+}
+
+.seasonal-tile .category-tile-blur {
+  background: rgba(28, 32, 22, 0.16);
+  backdrop-filter: blur(0);
+  -webkit-backdrop-filter: blur(0);
 }
 
 .category-tile:hover {

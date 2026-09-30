@@ -47,7 +47,7 @@ export function SeasonalSections({ products, copy }: { products: Product[]; copy
         <div className="category-rail" aria-label={t('seasonsTitle')}>
           {seasons.map(({ id, titleKey, subtitleKey, Icon }, index) => {
             const seasonalProducts = products.filter((product) => product.season === id);
-            const image = seasonalProducts[0]?.image || products[index]?.image;
+            const image = seasonalProducts[0]?.image;
             const defaultTitle = t(titleKey);
             const titleField = { winter: 'winterTitle', summer: 'summerTitle', autumn: 'autumnTitle' }[id];
             const descriptionField = { winter: 'winterDescription', summer: 'summerDescription', autumn: 'autumnDescription' }[id];
@@ -62,7 +62,7 @@ export function SeasonalSections({ products, copy }: { products: Product[]; copy
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.15 }}
                 transition={{ delay: index * 0.08 }}
-                className="category-tile group"
+                className={`category-tile group ${image ? '' : 'seasonal-tile'}`}
               >
                 {image && <img src={image} alt={t('seasonPieceAlt').replace('{season}', cardTitle)} className="category-tile-image" loading="lazy" />}
                 <span className="category-tile-blur" />
