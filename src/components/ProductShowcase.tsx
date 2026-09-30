@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { AnimatePresence, motion, useInView } from 'framer-motion';
 import { Heart, ShoppingBag, Star, X } from 'lucide-react';
+import AnimatedActionButton from './AnimatedActionButton';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 import type { Product } from '../data/products';
 import type { WishlistItem } from '../App';
@@ -105,13 +106,14 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist, selected,
             {product.originalPrice > product.price && <span className="text-xs text-charcoal-400 line-through">₪{product.originalPrice}</span>}
             {discountPercentage > 0 && <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">{language === 'en' ? `${discountPercentage}% ${t('discount')}` : `${t('discount')} ${discountPercentage}%`}</span>}
           </div>
-          <button 
+          <AnimatedActionButton
             disabled={!canAddToCart} 
-            onClick={() => onAdd(product, selectedColor, size)} 
+            onAction={() => onAdd(product, selectedColor, size)}
+            icon={<ShoppingBag className="h-4 w-4" />}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2E3220] px-4 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:bg-ora-700 hover:-translate-y-0.5 active:scale-95 whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <ShoppingBag className="w-4 h-4" />{t('addToCart')}
-          </button>
+            {t('addToCart')}
+          </AnimatedActionButton>
         </div>
 
         <div className="mt-3">
@@ -431,7 +433,7 @@ function ProductDetails({ product, liked, onClose, onAdd, onToggleWishlist }: {
             <div className="flex flex-wrap gap-2">{colorSizes.map((size) => <button type="button" key={size.name} disabled={!size.available} onClick={() => setSelectedSize(size.name)} className={`size-option min-w-11 rounded-md border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40 ${!size.available ? 'line-through' : ''} ${selectedSize === size.name ? 'size-option-selected' : ''}`} aria-pressed={selectedSize === size.name}>{size.name}</button>)}</div>
           </div>
           <div className="mt-auto grid grid-cols-[1fr_auto] gap-2 pt-7">
-            <button type="button" disabled={!canAdd} onClick={() => { onAdd(product, selectedColor, selectedSize); onClose(); }} className="flex items-center justify-center gap-2 rounded-lg bg-[#2E3220] px-4 py-3 font-bold text-white disabled:opacity-40"><ShoppingBag size={18} /> {t('addToCart')}</button>
+            <AnimatedActionButton type="button" disabled={!canAdd} onAction={() => onAdd(product, selectedColor, selectedSize)} onSuccess={onClose} icon={<ShoppingBag size={18} />} className="flex items-center justify-center gap-2 rounded-lg bg-[#2E3220] px-4 py-3 font-bold text-white disabled:opacity-40">{t('addToCart')}</AnimatedActionButton>
             <button type="button" onClick={() => onToggleWishlist(product, selectedColor, selectedSize)} className={`flex h-12 w-12 items-center justify-center rounded-lg border border-ora-200 bg-white ${liked ? 'text-red-600' : 'text-charcoal-700'}`} aria-label={liked ? t('removeWishlist') : t('wishlist')}><Heart size={19} className={liked ? 'fill-current' : ''} /></button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, Heart, Leaf, ShoppingBag, Snowflake, Star, Sun, Tag } from 'lucide-react';
+import AnimatedActionButton from './AnimatedActionButton';
 import type { CSSProperties } from 'react';
 import type { Product } from '../data/products';
 import type { SiteContent } from '../data/siteContent';
@@ -191,7 +192,7 @@ function OfferProductCard({ product, liked, onSelect, onAdd, onToggleWishlist }:
         <div className="mt-1 flex flex-wrap gap-1.5">
           {sizeOptions.map((size) => <button key={size.name} type="button" disabled={!size.available} onClick={() => setSelectedSize(size.name)} className={`min-w-9 rounded-md border px-2 py-1 text-[11px] disabled:opacity-35 ${!size.available ? 'line-through' : ''} ${selectedSize === size.name ? 'border-ora-300 bg-ora-500 text-white' : 'border-white/20 bg-white/5'}`} aria-pressed={selectedSize === size.name}>{size.name}</button>)}
         </div>
-        <button type="button" disabled={!canAdd} onClick={() => onAdd(product, selectedColor, selectedSize)} className="mt-3 flex w-full items-center justify-center gap-2 rounded-md bg-white px-3 py-2.5 text-sm font-bold text-[#2e3220] transition hover:bg-ora-200 disabled:cursor-not-allowed disabled:opacity-40"><ShoppingBag size={16} /> {t('addToCart')}</button>
+        <AnimatedActionButton disabled={!canAdd} onAction={() => onAdd(product, selectedColor, selectedSize)} icon={<ShoppingBag size={16} />} className="mt-3 flex w-full items-center justify-center gap-2 rounded-md bg-white px-3 py-2.5 text-sm font-bold text-[#2e3220] transition hover:bg-ora-200 disabled:cursor-not-allowed disabled:opacity-40">{t('addToCart')}</AnimatedActionButton>
       </div>
     </article>
   );
