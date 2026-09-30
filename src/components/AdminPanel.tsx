@@ -33,6 +33,8 @@ export default function AdminPanel({ products, onSave, siteContent, onSaveSiteCo
   const [open, setOpen] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [tab, setTab] = useState<Tab>('products');
   const [draft, setDraft] = useState<Product[]>(products);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -44,6 +46,9 @@ export default function AdminPanel({ products, onSave, siteContent, onSaveSiteCo
   const savingProductsRef = useRef(false);
 
   const login = async () => {
+    if (isLoggingIn) return;
+    setLoginError('');
+    setIsLoggingIn(true);
     try {
       const loadedOrders = await loadOrdersFromApi(password) as Order[];
       setOrders(loadedOrders);
@@ -52,8 +57,11 @@ export default function AdminPanel({ products, onSave, siteContent, onSaveSiteCo
       setDraft(products);
       setContentDraft(siteContent);
       setSaveError('');
-    } catch {
-      setSaveError('كلمة المرور غير صحيحة أو تعذر الاتصال بخدمة الإدارة.');
+    } catch (error) {
+      const unauthorized = error instanceof Error && error.message.endsWith(': 401');
+      setLoginError(unauthorized ? 'كلمة المرور غير صحيحة.' : 'تعذر الاتصال بخدمة الإدارة. تحقق من إعداد رابط API وحاول مجددًا.');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -122,8 +130,9 @@ const save = async (productsToSave?: Product[]) => {
                   <LockKeyhole className="mb-4 text-ora-700" size={36} />
                   <h2 className="text-2xl font-bold mb-2">لوحة إدارة ORA</h2>
                   <p className="text-sm text-charcoal-500 mb-5">أدخل كلمة المرور للمتابعة</p>
-                  <input autoFocus value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && login()} type="password" placeholder="كلمة المرور" className="field max-w-xs" />
-                  <button onClick={login} className="mt-3 px-8 py-3 rounded-xl bg-[#2E3220] text-white">دخول</button>
+                  <input autoFocus value={password} onChange={(e) => { setPassword(e.target.value); setLoginError(''); }} onKeyDown={(e) => e.key === 'Enter' && void login()} type="password" placeholder="كلمة المرور" className="field max-w-xs" aria-invalid={Boolean(loginError)} aria-describedby={loginError ? 'admin-login-error' : undefined} />
+                  {loginError && <p id="admin-login-error" role="alert" className="mt-3 max-w-xs text-sm text-red-700">{loginError}</p>}
+                  <button type="button" onClick={() => void login()} disabled={isLoggingIn} className="mt-3 px-8 py-3 rounded-xl bg-[#2E3220] text-white disabled:cursor-wait disabled:opacity-60">{isLoggingIn ? 'جارٍ التحقق...' : 'دخول'}</button>
                 </div>
               ) : (
                 <>
