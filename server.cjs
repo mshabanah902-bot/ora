@@ -24,7 +24,7 @@ async function supabase(pathname, options = {}) {
 const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', process.env.FRONTEND_URL || '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-password');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
   try {
     if (req.url === '/' && req.method === 'GET') {
@@ -56,8 +56,29 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.url === '/api/orders' && req.method === 'GET') {
       if (req.headers['x-admin-password'] !== ADMIN_PASSWORD) return reply(res, 401, { error: 'Unauthorized' });
-      const rows = await supabase('orders?select=payload,created_at&order=created_at.desc');
-      return reply(res, 200, rows.map((row) => ({ ...row.payload, createdAt: row.created_at })));
+      const rows = await supabase('orders?select=id,payload,created_at&order=created_at.desc');
+      return reply(res, 200, rows.map((row) => ({ ...row.payload, id: row.id, createdAt: row.created_at })));
+    }
+    if (req.url === '/api/orders' && req.method === 'DELETE') {
+      if (req.headers['x-admin-password'] !== ADMIN_PASSWORD) return reply(res, 401, { error: 'Unauthorized' });
+      await supabase('orders?id=not.is.null', { method: 'DELETE' });
+      return reply(res, 200, { deleted: true });
+    }
+    const orderMatch = req.url.match(/^\/api\/orders\/(\d+)$/);
+    if (orderMatch && req.method === 'PUT') {
+      if (req.headers['x-admin-password'] !== ADMIN_PASSWORD) return reply(res, 401, { error: 'Unauthorized' });
+      const { status } = await body(req);
+      const validStatuses = ['new', 'cancelled', 'postponed', 'delivered', 'exchanged'];
+      if (!validStatuses.includes(status)) return reply(res, 400, { error: 'Invalid order status' });
+      const rows = await supabase(`orders?id=eq.${orderMatch[1]}&select=payload`, { method: 'GET' });
+      if (!rows.length) return reply(res, 404, { error: 'Order not found' });
+      await supabase(`orders?id=eq.${orderMatch[1]}`, { method: 'PATCH', body: JSON.stringify({ payload: { ...rows[0].payload, status } }) });
+      return reply(res, 200, { updated: true });
+    }
+    if (orderMatch && req.method === 'DELETE') {
+      if (req.headers['x-admin-password'] !== ADMIN_PASSWORD) return reply(res, 401, { error: 'Unauthorized' });
+      await supabase(`orders?id=eq.${orderMatch[1]}`, { method: 'DELETE' });
+      return reply(res, 200, { deleted: true });
     }
     if (req.url === '/api/orders' && req.method === 'POST') {
       const order = await body(req);

@@ -47,15 +47,6 @@ const normalizeProducts = (items: unknown): Product[] => {
     .filter((product) => Number.isFinite(product.id) && product.image);
 };
 
-function readLegacyProducts() {
-  try {
-    const value = localStorage.getItem('ora-products');
-    return value ? JSON.parse(value) as Product[] : [];
-  } catch {
-    return [];
-  }
-}
-
 function readStored<T>(key: string, fallback: T): T {
   try {
     const value = localStorage.getItem(key);
@@ -68,14 +59,6 @@ function readStored<T>(key: string, fallback: T): T {
 function writeStored(key: string, value: unknown) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // Storage can be unavailable in private browsing or restricted webviews.
-  }
-}
-
-function removeStored(key: string) {
-  try {
-    localStorage.removeItem(key);
   } catch {
     // Storage can be unavailable in private browsing or restricted webviews.
   }
@@ -136,25 +119,14 @@ export default function App() {
       if (!active) return;
 
       if (productsResult.status === 'fulfilled') {
-        const data = productsResult.value;
-        const legacyProducts = readLegacyProducts();
-        const productsById = new Map(data.map((product) => [product.id, product]));
-        legacyProducts.forEach((product) => {
-          if (!productsById.has(product.id)) productsById.set(product.id, product);
-        });
-        const catalog = normalizeProducts([...productsById.values()]);
+        const catalog = normalizeProducts(productsResult.value);
         const hasDisplayOrder = catalog.length > 0 && catalog.every((product) => Number.isFinite(product.displayOrder));
         const restored = catalog
           .sort((a, b) => hasDisplayOrder
             ? (a.displayOrder || 0) - (b.displayOrder || 0)
             : Number(b.id) - Number(a.id))
           .map((product, index) => ({ ...product, displayOrder: hasDisplayOrder ? product.displayOrder : index }));
-        if (restored.length) setProducts(restored);
-        if (restored.length > data.length) {
-          void persistProducts(restored).then(() => removeStored('ora-products')).catch(() => undefined);
-        } else if (legacyProducts.length) {
-          removeStored('ora-products');
-        }
+        setProducts(restored);
       }
 
       if (contentResult.status === 'fulfilled') {
@@ -212,9 +184,7 @@ export default function App() {
   };
   const changeQuantity = (lineId: string, delta: number) => setCart((items) => items.map((item) => item.lineId === lineId ? { ...item, quantity: item.quantity + delta } : item).filter((item) => item.quantity > 0));
   const saveProducts = async (next: Product[]) => {
-    if (!next.length) throw new Error('لا يمكن حفظ قائمة منتجات فارغة');
     const ordered = normalizeProducts(next).map((product, index) => ({ ...product, displayOrder: index }));
-    setProducts(ordered);
     const saved = await persistProducts(ordered);
     const savedOrdered = normalizeProducts(saved).sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
     setProducts(savedOrdered);

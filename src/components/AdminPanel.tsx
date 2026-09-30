@@ -3,13 +3,20 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown, ChevronUp, ClipboardList, Download, GripVertical, ImagePlus, LockKeyhole, Plus, Settings, Trash2, X } from 'lucide-react';
 import type { Product } from '../data/products';
 import type { SiteContent } from '../data/siteContent';
-import { loadOrders as loadOrdersFromSupabase } from '../lib/api';
+import { deleteAllOrders as deleteAllOrdersFromApi, deleteOrder as deleteOrderFromApi, loadOrders as loadOrdersFromApi, updateOrderStatus as updateOrderStatusInApi } from '../lib/api';
 type OrderItem = { id: number; name: string; color: string; size?: string; price: number; quantity: number };
+type OrderStatus = 'new' | 'cancelled' | 'postponed' | 'delivered' | 'exchanged';
 type Order = {
+  id: number;
   customer: { name: string; phone: string; address: string };
   region: string;
   items: OrderItem[];
+  subtotal?: number;
+  discount?: number;
+  promoCode?: string;
+  deliveryFee?: number;
   total: number;
+  status?: OrderStatus;
   createdAt: string;
 };
 
@@ -30,25 +37,32 @@ export default function AdminPanel({ products, onSave, siteContent, onSaveSiteCo
   const [draft, setDraft] = useState<Product[]>(products);
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
   const [contentDraft, setContentDraft] = useState<SiteContent>(siteContent);
   const [saveError, setSaveError] = useState('');
   const [productsSaving, setProductsSaving] = useState(false);
   const savingProductsRef = useRef(false);
 
   const login = async () => {
-    if (password !== 'ora123') return;
-    setAuthenticated(true);
-    setDraft(products);
-    setContentDraft(siteContent);
-    await loadOrders();
+    try {
+      const loadedOrders = await loadOrdersFromApi(password) as Order[];
+      setOrders(loadedOrders);
+      setAdminPassword(password);
+      setAuthenticated(true);
+      setDraft(products);
+      setContentDraft(siteContent);
+      setSaveError('');
+    } catch {
+      setSaveError('كلمة المرور غير صحيحة أو تعذر الاتصال بخدمة الإدارة.');
+    }
   };
 
   const loadOrders = async () => {
     setOrdersLoading(true);
     try {
-      setOrders(await loadOrdersFromSupabase() as unknown as Order[]);
+      setOrders(await loadOrdersFromApi(adminPassword) as Order[]);
     } catch {
-      setOrders([]);
+      setSaveError('تعذر تحميل الطلبات. تحقق من اتصال خدمة الإدارة.');
     } finally {
       setOrdersLoading(false);
     }
@@ -120,7 +134,7 @@ const save = async (productsToSave?: Product[]) => {
                     <button onClick={() => { setTab('orders'); void loadOrders(); }} className={`py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${tab === 'orders' ? 'bg-[#2E3220] text-white' : 'bg-white'}`}><ClipboardList size={17} /> الطلبات</button>
                     <button onClick={() => setTab('settings')} className={`py-3 rounded-xl font-semibold transition-all ${tab === 'settings' ? 'bg-[#2E3220] text-white' : 'bg-white'}`}>المحتوى</button>
                   </div>
-                  {tab === 'products' ? <ProductsTab draft={draft} update={update} onDraftChange={setDraft} onSave={save} saving={productsSaving} readImages={readImages} /> : tab === 'orders' ? <OrdersTab orders={orders} loading={ordersLoading} /> : <ContentTab draft={contentDraft} update={setContentDraft} onSave={saveContent} />}
+                  {tab === 'products' ? <ProductsTab draft={draft} update={update} onDraftChange={setDraft} onSave={save} saving={productsSaving} readImages={readImages} /> : tab === 'orders' ? <OrdersTab orders={orders} loading={ordersLoading} password={adminPassword} onOrdersChange={setOrders} onError={setSaveError} /> : <ContentTab draft={contentDraft} update={setContentDraft} onSave={saveContent} />}
                 </>
               )}
             </motion.aside>
@@ -186,6 +200,17 @@ function ProductsTab({ draft, update, onDraftChange, onSave, saving, readImages 
     setNewProduct(createEmptyProduct(nextId + 1));
   };
 
+  const deleteProduct = async (product: Product) => {
+    if (saving || !window.confirm(`هل تريد حذف المنتج ${product.nameAr || product.name}؟`)) return;
+    const nextProducts = draft.filter((item) => item.id !== product.id);
+    try {
+      await onSave(nextProducts);
+      onDraftChange(nextProducts);
+    } catch {
+      return;
+    }
+  };
+
   return <>
     <div className="grid grid-cols-2 gap-2 mb-4">
       <button type="button" onClick={() => setProductSection('add')} className={`py-3 rounded-xl font-bold ${productSection === 'add' ? 'bg-[#2E3220] text-white' : 'bg-white'}`}>+ إضافة منتج</button>
@@ -249,6 +274,7 @@ function ProductsTab({ draft, update, onDraftChange, onSave, saving, readImages 
           <div className="flex gap-1">
             <button type="button" disabled={index === 0} onClick={() => reorderProducts(index, index - 1)} aria-label="تحريك المنتج للأعلى" className="rounded-md p-2 text-charcoal-600 hover:bg-ora-100 disabled:opacity-30"><ChevronUp size={18} /></button>
             <button type="button" disabled={index === draft.length - 1} onClick={() => reorderProducts(index, index + 1)} aria-label="تحريك المنتج للأسفل" className="rounded-md p-2 text-charcoal-600 hover:bg-ora-100 disabled:opacity-30"><ChevronDown size={18} /></button>
+            <button type="button" disabled={saving} onClick={() => void deleteProduct(product)} aria-label={`حذف المنتج ${product.nameAr || product.name}`} title="حذف المنتج" className="rounded-md p-2 text-red-600 hover:bg-red-50 disabled:opacity-40"><Trash2 size={18} /></button>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2"><input className="field" value={product.name} onChange={(e) => update(index, { name: e.target.value, category: e.target.value.trim() })} placeholder="اسم المنتج" /><input className="field" value={product.nameAr} onChange={(e) => update(index, { nameAr: e.target.value })} placeholder="الاسم بالعربي" /><input className="field" type="number" value={product.price || ''} onChange={(e) => update(index, { price: Number(e.target.value) })} placeholder="السعر بعد الخصم" /><input className="field" type="number" value={product.originalPrice || ''} onChange={(e) => update(index, { originalPrice: Number(e.target.value) })} placeholder="السعر قبل الخصم (اختياري)" /><select className="field" value={product.badge} onChange={(e) => update(index, { badge: e.target.value })} aria-label={`تصنيف ${product.name}`}>
@@ -387,7 +413,38 @@ function ContentTab({ draft, update, onSave }: { draft: SiteContent; update: (co
   </div>;
 }
 
-function OrdersTab({ orders, loading }: { orders: Order[]; loading: boolean }) {
+const orderStatusOptions: { value: OrderStatus; label: string }[] = [
+  { value: 'new', label: 'جديد' },
+  { value: 'cancelled', label: 'ملغي' },
+  { value: 'postponed', label: 'مؤجل' },
+  { value: 'delivered', label: 'تم التسليم' },
+  { value: 'exchanged', label: 'مبدل' },
+];
+
+function englishDigits(value: string | number) {
+  return String(value).replace(/[٠-٩۰-۹]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit) >= 0 ? '٠١٢٣٤٥٦٧٨٩'.indexOf(digit) : '۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)));
+}
+
+function formatOrderNumber(value: number) {
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(Number(value) || 0);
+}
+
+function formatOrderDate(value: string) {
+  return new Intl.DateTimeFormat('en-GB', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
+}
+
+function formatOrderMoney(value: number) {
+  return `₪${formatOrderNumber(value)}`;
+}
+
+function getOrderAmounts(order: Order) {
+  const subtotal = order.subtotal ?? order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const discount = order.discount || 0;
+  const deliveryFee = order.deliveryFee ?? Math.max(0, order.total - subtotal + discount);
+  return { subtotal, discount, deliveryFee };
+}
+
+function OrdersTab({ orders, loading, password, onOrdersChange, onError }: { orders: Order[]; loading: boolean; password: string; onOrdersChange: Dispatch<SetStateAction<Order[]>>; onError: (message: string) => void }) {
   const [month, setMonth] = useState('');
   const [day, setDay] = useState('');
   const [category, setCategory] = useState('');
@@ -401,24 +458,96 @@ function OrdersTab({ orders, loading }: { orders: Order[]; loading: boolean }) {
   }), [orders, month, day, category]);
 
   const download = () => {
-    const headers = ['التاريخ', 'الاسم', 'الهاتف', 'الموقع', 'المنطقة', 'الأصناف', 'الإجمالي'];
-    const rows = filtered.map((order) => [
-      new Date(order.createdAt).toLocaleString('ar-PS'),
-      order.customer.name,
-      order.customer.phone,
-      order.customer.address,
-      order.region,
-      order.items.map((item) => `${item.name} - ${item.color}${item.size ? ` - ${item.size}` : ''} × ${item.quantity}`).join(' | '),
-      `₪${order.total}`,
-    ]);
-const csv = '\uFEFF' + [headers, ...rows].map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const headers = ['التاريخ', 'الاسم', 'الهاتف', 'الموقع', 'المنطقة', 'حالة الطلب', 'تفاصيل المنتجات', 'مجموع المنتجات', 'كود الخصم', 'قيمة الخصم', 'رسوم التوصيل', 'الإجمالي'];
+    const rows = filtered.map((order) => {
+      const amounts = getOrderAmounts(order);
+      return [
+        formatOrderDate(order.createdAt),
+        order.customer.name,
+        englishDigits(order.customer.phone),
+        order.customer.address,
+        order.region,
+        orderStatusOptions.find((status) => status.value === (order.status || 'new'))?.label || 'جديد',
+        order.items.map((item) => `${item.name} - ${item.color}${item.size ? ` - ${item.size}` : ''} × ${englishDigits(item.quantity)} @ ${formatOrderMoney(item.price)} = ${formatOrderMoney(item.price * item.quantity)}`).join(' | '),
+        formatOrderMoney(amounts.subtotal),
+        order.promoCode || '-',
+        formatOrderMoney(amounts.discount),
+        formatOrderMoney(amounts.deliveryFee),
+        formatOrderMoney(order.total),
+      ];
+    });
+    const csv = '\uFEFF' + [headers, ...rows].map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a'); link.href = url; link.download = `ora-orders-${month || day || 'all'}.csv`; link.click(); URL.revokeObjectURL(url);
+  };
+
+  const changeStatus = async (order: Order, status: OrderStatus) => {
+    onError('');
+    try {
+      await updateOrderStatusInApi(order.id, status, password);
+      onOrdersChange((current) => current.map((item) => item.id === order.id ? { ...item, status } : item));
+    } catch {
+      onError('تعذر تحديث حالة الطلب. حاول مرة أخرى.');
+    }
+  };
+
+  const removeOrder = async (order: Order) => {
+    if (!window.confirm(`هل تريد حذف طلب ${order.customer.name}؟`)) return;
+    onError('');
+    try {
+      await deleteOrderFromApi(order.id, password);
+      onOrdersChange((current) => current.filter((item) => item.id !== order.id));
+    } catch {
+      onError('تعذر حذف الطلب. حاول مرة أخرى.');
+    }
+  };
+
+  const removeAllOrders = async () => {
+    if (!orders.length || !window.confirm(`سيتم حذف جميع الطلبات (${formatOrderNumber(orders.length)}). هل تريد المتابعة؟`)) return;
+    onError('');
+    try {
+      await deleteAllOrdersFromApi(password);
+      onOrdersChange([]);
+    } catch {
+      onError('تعذر حذف الطلبات. حاول مرة أخرى.');
+    }
   };
 
   return <div>
     <div className="grid grid-cols-2 gap-2 mb-3"><label className="text-xs text-charcoal-500">حسب الشهر<input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="field mt-1" /></label><label className="text-xs text-charcoal-500">حسب اليوم<input type="date" value={day} onChange={(e) => setDay(e.target.value)} className="field mt-1" /></label></div>
     <label className="text-xs text-charcoal-500">حسب الصنف<select value={category} onChange={(e) => setCategory(e.target.value)} className="field mt-1"><option value="">كل الأصناف</option>{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-    <button onClick={download} disabled={!filtered.length} className="w-full mt-4 py-3 rounded-xl bg-ora-600 text-green font-bold flex gap-2 justify-center items-center disabled:opacity-40"><Download size={17} /> تنزيل الطلبات كملف Excel</button>
-    {loading ? <p className="text-center py-10 text-charcoal-500">جاري تحميل الطلبات...</p> : !filtered.length ? <p className="text-center py-10 text-charcoal-500">لا توجد طلبات مطابقة</p> : <div className="space-y-3 mt-5">{filtered.slice().reverse().map((order, index) => <div key={`${order.createdAt}-${index}`} className="bg-white rounded-2xl p-4 shadow-sm text-sm"><div className="flex justify-between font-bold"><span>{order.customer.name}</span><span>₪{order.total}</span></div><p className="text-xs text-charcoal-500 mt-1">{new Date(order.createdAt).toLocaleString('ar-PS')}</p><p className="mt-2">{order.customer.phone} · {order.region}</p><p className="text-charcoal-500">{order.items.map((item) => `${item.name} × ${item.quantity}`).join('، ')}</p></div>)}</div>}
+    <div className="grid grid-cols-2 gap-2 mt-4">
+      <button onClick={download} disabled={!filtered.length} className="py-3 rounded-xl bg-ora-700 text-white font-bold flex gap-2 justify-center items-center text-xs sm:text-sm hover:bg-[#2e3220] disabled:opacity-40"><Download size={17} /> تنزيل ملف Excel</button>
+      <button onClick={() => void removeAllOrders()} disabled={!orders.length} className="py-3 rounded-xl border border-red-200 bg-red-50 text-red-700 font-bold flex gap-2 justify-center items-center text-xs sm:text-sm hover:bg-red-100 disabled:opacity-40"><Trash2 size={17} /> حذف كل الطلبات</button>
+    </div>
+    {loading ? <p className="text-center py-10 text-charcoal-500">جاري تحميل الطلبات...</p> : !filtered.length ? <p className="text-center py-10 text-charcoal-500">لا توجد طلبات مطابقة</p> : <div className="space-y-3 mt-5">{filtered.map((order) => {
+      const amounts = getOrderAmounts(order);
+      const status = order.status || 'new';
+      return <article key={order.id} className="bg-white rounded-2xl p-4 shadow-sm text-sm">
+        <div className="flex items-start justify-between gap-3 font-bold"><span className="min-w-0">{order.customer.name}</span><span className="shrink-0">{formatOrderMoney(order.total)}</span></div>
+        <p className="text-xs text-charcoal-500 mt-1">{formatOrderDate(order.createdAt)}</p>
+        <p className="mt-2">{englishDigits(order.customer.phone)} · {order.region}</p>
+        <p className="text-charcoal-500">{order.customer.address}</p>
+        <div className="mt-3 space-y-2 border-t border-ora-100 pt-3">
+          {order.items.map((item, index) => <div key={`${item.id}-${item.size}-${index}`} className="flex justify-between gap-3 text-xs">
+            <span className="min-w-0">{item.name}{item.color ? ` · ${item.color}` : ''}{item.size ? ` · ${item.size}` : ''} × {englishDigits(item.quantity)} <span className="text-charcoal-500">({formatOrderMoney(item.price)} للقطعة)</span></span>
+            <b className="shrink-0">{formatOrderMoney(item.price * item.quantity)}</b>
+          </div>)}
+        </div>
+        <div className="mt-3 space-y-1 border-t border-ora-100 pt-3 text-xs">
+          <div className="flex justify-between"><span>مجموع المنتجات</span><span>{formatOrderMoney(amounts.subtotal)}</span></div>
+          {amounts.discount ? <div className="flex justify-between text-green-700"><span>الخصم{order.promoCode ? ` (${order.promoCode})` : ''}</span><span>-{formatOrderMoney(amounts.discount)}</span></div> : order.promoCode ? <div className="flex justify-between"><span>كود الخصم</span><span>{order.promoCode}</span></div> : null}
+          <div className="flex justify-between"><span>رسوم التوصيل</span><span>{formatOrderMoney(amounts.deliveryFee)}</span></div>
+          <div className="flex justify-between border-t border-ora-100 pt-2 font-bold"><span>الإجمالي</span><span>{formatOrderMoney(order.total)}</span></div>
+        </div>
+        <div className="mt-3 flex items-center gap-2">
+          <label htmlFor={`order-status-${order.id}`} className="shrink-0 text-xs font-semibold">حالة الطلب</label>
+          <select id={`order-status-${order.id}`} value={status} onChange={(event) => void changeStatus(order, event.target.value as OrderStatus)} className="field min-w-0 flex-1 py-2 text-xs">
+            {orderStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+          <button type="button" onClick={() => void removeOrder(order)} aria-label={`حذف طلب ${order.customer.name}`} title="حذف الطلب" className="shrink-0 rounded-lg border border-red-200 p-2 text-red-700 hover:bg-red-50"><Trash2 size={17} /></button>
+        </div>
+      </article>;
+    })}</div>}
   </div>;
 }
