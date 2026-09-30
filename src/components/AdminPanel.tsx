@@ -526,7 +526,9 @@ function OrdersTab({ orders, loading, password, onOrdersChange, onError }: { ord
     <div className="grid grid-cols-2 gap-2 mb-3"><label className="text-xs text-charcoal-500">حسب الشهر<input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="field mt-1" /></label><label className="text-xs text-charcoal-500">حسب اليوم<input type="date" value={day} onChange={(e) => setDay(e.target.value)} className="field mt-1" /></label></div>
     <label className="text-xs text-charcoal-500">حسب الصنف<select value={category} onChange={(e) => setCategory(e.target.value)} className="field mt-1"><option value="">كل الأصناف</option>{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
     <div className="grid grid-cols-2 gap-2 mt-4">
-      <button onClick={download} disabled={!filtered.length} className="py-3 rounded-xl bg-ora-700 text-white font-bold flex gap-2 justify-center items-center text-xs sm:text-sm hover:bg-[#2e3220] disabled:opacity-40"><Download size={17} /> تنزيل ملف Excel</button>
+     <button onClick={download} disabled={!filtered.length} className="py-3 rounded-xl bg-ora-700 text-black font-bold flex gap-2 justify-center items-center text-xs sm:text-sm hover:bg-[#2e3220] hover:text-white disabled:opacity-40">
+  <Download size={17} /> تنزيل ملف Excel
+</button>
       <button onClick={() => void removeAllOrders()} disabled={!orders.length} className="py-3 rounded-xl border border-red-200 bg-red-50 text-red-700 font-bold flex gap-2 justify-center items-center text-xs sm:text-sm hover:bg-red-100 disabled:opacity-40"><Trash2 size={17} /> حذف كل الطلبات</button>
     </div>
     {loading ? <p className="text-center py-10 text-charcoal-500">جاري تحميل الطلبات...</p> : !filtered.length ? <p className="text-center py-10 text-charcoal-500">لا توجد طلبات مطابقة</p> : <div className="space-y-3 mt-5">{filtered.map((order) => {
