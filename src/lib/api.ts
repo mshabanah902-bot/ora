@@ -49,7 +49,10 @@ export async function deleteAllOrders(password: string) {
 
 async function adminOrdersRequest(path: string, method: string, password = '', body?: unknown) {
   const configuredUrl = import.meta.env.VITE_API_URL;
-  const apiUrl = configuredUrl || (isLocalDevRuntime() ? 'http://localhost:4173' : window.location.origin);
+  if (!configuredUrl && !isLocalDevRuntime()) {
+    throw new Error('VITE_API_URL is required for production deployments');
+  }
+  const apiUrl = configuredUrl || 'http://localhost:4173';
   const baseUrl = /^https?:\/\//.test(apiUrl) ? apiUrl : `https://${apiUrl}`;
 
   try {
