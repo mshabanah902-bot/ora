@@ -1,6 +1,7 @@
 export type SiteContent = {
   shopSections: {
     seasons: {
+      order: ('winter' | 'summer' | 'autumn')[];
       kicker: string;
       title: string;
       hint: string;
@@ -52,6 +53,7 @@ export type SiteContent = {
 export const defaultSiteContent: SiteContent = {
   shopSections: {
     seasons: {
+      order: ['winter', 'summer', 'autumn'],
       kicker: 'اختاري إطلالتك',
       title: 'تشكيلات المواسم',
       hint: 'قطع مختارة لكل فصل',

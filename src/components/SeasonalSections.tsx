@@ -24,6 +24,7 @@ function selectProduct(productId: number) {
 export function SeasonalSections({ products, copy }: { products: Product[]; copy: SiteContent['shopSections']['seasons'] }) {
   const { language, t } = useLanguage();
   const titleKey = language === 'ar' ? copy.title : t('seasonsTitle');
+  const orderedSeasons = [...seasons].sort((first, second) => copy.order.indexOf(first.id) - copy.order.indexOf(second.id));
   return (
     <section aria-label={titleKey} className="relative overflow-hidden bg-[#faf8f5]/88 py-16 sm:py-20" dir={language === 'en' ? 'ltr' : 'rtl'}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -33,7 +34,7 @@ export function SeasonalSections({ products, copy }: { products: Product[]; copy
           <span className="mt-2 block text-sm text-charcoal-600">{language === 'ar' ? copy.hint : t('seasonsHint')}</span>
         </div>
         <div className="category-rail" aria-label={t('seasonsTitle')}>
-          {seasons.map(({ id, titleKey, subtitleKey, Icon }, index) => {
+          {orderedSeasons.map(({ id, titleKey, subtitleKey, Icon }, index) => {
             const seasonalProducts = products.filter((product) => product.season === id);
             const image = seasonalProducts[0]?.image;
             const defaultTitle = t(titleKey);
@@ -129,17 +130,18 @@ function OfferProductCard({ product, liked, onSelect, onAdd, onToggleWishlist }:
     ? product.colors
     : product.images.map((image) => ({ name: image.color, image: image.img, available: true }));
   const sizes = product.sizes?.length ? product.sizes : [{ name: 'One Size', available: true }];
+  const hasAvailableSize = (color: Product['colors'][number]) => sizes.some((size) => color.sizeAvailability?.[size.name] ?? size.available ?? true);
+  const isColorAvailable = (color: Product['colors'][number]) => color.available !== false && hasAvailableSize(color);
   const colors = [...colorOptions].sort((first, second) => {
-    const firstAvailable = first.available && sizes.some((size) => first.sizeAvailability?.[size.name] ?? size.available);
-    const secondAvailable = second.available && sizes.some((size) => second.sizeAvailability?.[size.name] ?? size.available);
-    return Number(secondAvailable) - Number(firstAvailable);
+    return Number(isColorAvailable(second)) - Number(isColorAvailable(first));
   });
   const [selectedColor, setSelectedColor] = useState(colors[0]?.name || '');
   const [selectedSize, setSelectedSize] = useState('');
   const activeColor = colors.find((color) => color.name === selectedColor) || colors[0];
+  const availabilityKey = colors.map((color) => `${color.name}:${sizes.map((size) => color.available !== false && (color.sizeAvailability?.[size.name] ?? size.available ?? true)).join(',')}`).join('|');
   const sizeOptions = sizes.map((size) => ({
     ...size,
-    available: Boolean(activeColor?.available && (activeColor?.sizeAvailability?.[size.name] ?? size.available)),
+    available: Boolean(activeColor && activeColor.available !== false && (activeColor.sizeAvailability?.[size.name] ?? size.available ?? true)),
   })).sort((first, second) => Number(second.available) - Number(first.available));
   const currentImage = activeColor?.images?.[0] || activeColor?.image || product.image;
   const discount = Math.round((1 - product.price / product.originalPrice) * 100);
@@ -148,6 +150,19 @@ function OfferProductCard({ product, liked, onSelect, onAdd, onToggleWishlist }:
   useEffect(() => {
     setSelectedSize(sizeOptions.find((size) => size.available)?.name || '');
   }, [selectedColor]);
+
+  useEffect(() => {
+    if (activeColor && !isColorAvailable(activeColor)) {
+      const nextAvailableColor = colors.find(isColorAvailable);
+      if (nextAvailableColor) {
+        setSelectedColor(nextAvailableColor.name);
+        return;
+      }
+    }
+    if (!sizeOptions.some((size) => size.name === selectedSize && size.available)) {
+      setSelectedSize(sizeOptions.find((size) => size.available)?.name || '');
+    }
+  }, [availabilityKey]);
 
   return (
     <article className="offer-item" dir={language === 'en' ? 'ltr' : 'rtl'}>
@@ -168,8 +183,8 @@ function OfferProductCard({ product, liked, onSelect, onAdd, onToggleWishlist }:
         <div className="mt-1 flex items-center gap-2 text-sm"><b>₪{product.price}</b><del className="text-xs text-white/55">₪{product.originalPrice}</del></div>
         <div className="mt-3 flex flex-wrap gap-1.5">
           {colors.map((color) => {
-            const hasAvailableSize = Boolean(color.available && sizes.some((size) => color.sizeAvailability?.[size.name] ?? size.available));
-              return <button key={color.name} type="button" disabled={!hasAvailableSize} onClick={() => setSelectedColor(color.name)} className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] disabled:cursor-not-allowed disabled:opacity-40 ${selectedColor === color.name ? 'border-ora-300 bg-white/15' : 'border-white/20 bg-white/5'}`} aria-label={`${t('color')} ${translateProductColor(color.name, language)}`} aria-pressed={selectedColor === color.name}><span className="h-3.5 w-3.5 shrink-0 rounded-full border border-white/60" style={{ backgroundColor: getProductColorHex(color.name) }} />{translateProductColor(color.name, language)}</button>;
+            const colorHasAvailableSize = isColorAvailable(color);
+              return <button key={color.name} type="button" disabled={!colorHasAvailableSize} onClick={() => setSelectedColor(color.name)} className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] disabled:cursor-not-allowed disabled:opacity-40 ${selectedColor === color.name ? 'border-ora-300 bg-white/15' : 'border-white/20 bg-white/5'}`} aria-label={`${t('color')} ${translateProductColor(color.name, language)}`} aria-pressed={selectedColor === color.name}><span className="h-3.5 w-3.5 shrink-0 rounded-full border border-white/60" style={{ backgroundColor: getProductColorHex(color.name) }} />{translateProductColor(color.name, language)}</button>;
           })}
         </div>
         <p className="mt-3 text-[11px] text-white/65">{t('chooseSize')}</p>

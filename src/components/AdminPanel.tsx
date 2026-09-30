@@ -352,6 +352,13 @@ function ContentTab({ draft, update, onSave }: { draft: SiteContent; update: (co
   const setSeasonCopy = (change: Partial<SiteContent['shopSections']['seasons']>) => update({ ...draft, shopSections: { ...draft.shopSections, seasons: { ...draft.shopSections.seasons, ...change } } });
   const setTypeCopy = (change: Partial<SiteContent['shopSections']['types']>) => update({ ...draft, shopSections: { ...draft.shopSections, types: { ...draft.shopSections.types, ...change } } });
   const setCollection = (index: number, change: Partial<SiteContent['collections'][number]>) => update({ ...draft, collections: draft.collections.map((item, itemIndex) => itemIndex === index ? { ...item, ...change } : item) });
+  const reorderSeasons = (index: number, direction: -1 | 1) => {
+    const order = [...draft.shopSections.seasons.order];
+    const target = index + direction;
+    if (target < 0 || target >= order.length) return;
+    [order[index], order[target]] = [order[target], order[index]];
+    setSeasonCopy({ order });
+  };
   const imageField = (label: string, value: string, onChange: (value: string) => void) => <label className="block text-xs text-charcoal-500">{label}<input className="field mt-1" value={value} onChange={(e) => onChange(e.target.value)} placeholder="رابط الصورة أو ارفع صورة" /><input type="file" accept="image/*" className="field mt-1 text-xs" onChange={(e) => readImage(e.target.files?.[0], onChange)} />{value && <img src={value} alt={label} className="mt-2 h-32 w-full rounded-xl object-cover" />}</label>;
   return <div className="space-y-5">
     <div className="rounded-2xl bg-white p-4 shadow-sm space-y-3">
@@ -376,6 +383,16 @@ function ContentTab({ draft, update, onSave }: { draft: SiteContent; update: (co
       <div>
         <h3 className="font-bold text-lg">نصوص تشكيلات الموسم</h3>
         <p className="text-xs text-charcoal-500">تظهر هذه النصوص في قسم الموسم مستقلة عن إعدادات الهيرو والمجموعات.</p>
+      </div>
+      <div className="space-y-2 border-b border-ora-200 pb-3">
+        <p className="text-sm font-semibold">ترتيب بطاقات المواسم</p>
+        {draft.shopSections.seasons.order.map((season, index) => <div key={season} className="flex items-center justify-between rounded-lg bg-white px-3 py-2">
+          <span>{({ winter: 'شتوي', summer: 'صيفي', autumn: 'خريفي' })[season]}</span>
+          <div className="flex gap-1">
+            <button type="button" disabled={index === 0} onClick={() => reorderSeasons(index, -1)} aria-label="تحريك الموسم للأعلى" className="rounded-md p-2 text-charcoal-600 hover:bg-ora-100 disabled:opacity-30"><ChevronUp size={18} /></button>
+            <button type="button" disabled={index === draft.shopSections.seasons.order.length - 1} onClick={() => reorderSeasons(index, 1)} aria-label="تحريك الموسم للأسفل" className="rounded-md p-2 text-charcoal-600 hover:bg-ora-100 disabled:opacity-30"><ChevronDown size={18} /></button>
+          </div>
+        </div>)}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <input className="field" value={draft.shopSections.seasons.kicker} onChange={(e) => setSeasonCopy({ kicker: e.target.value })} placeholder="العنوان الصغير" />
