@@ -5,6 +5,17 @@ const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'ora123';
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required');
+
+// --- نظام الذاكرة المؤقتة (Memory Cache) لإيقاف استهلاك Egress نهائياً ---
+const memoryCache = {
+  products: null,
+  settings: null,
+  clear() {
+    this.products = null;
+    this.settings = null;
+  }
+};
+
 function body(req) {
   return new Promise((resolve, reject) => {
     let raw = '';
@@ -33,27 +44,42 @@ const server = http.createServer(async (req, res) => {
     if (req.url === '/health' && req.method === 'GET') {
       return reply(res, 200, { ok: true, storage: 'supabase' });
     }
+
+    // --- المنتجات مع تفعيل الـ Cache ---
     if (req.url === '/api/products' && req.method === 'GET') {
+      if (memoryCache.products) {
+        return reply(res, 200, memoryCache.products); // إرجاع فوري بدون طلب Supabase
+      }
       const rows = await supabase('store_settings?key=eq.products&select=value');
-      return reply(res, 200, rows[0]?.value || []);
+      memoryCache.products = rows[0]?.value || [];
+      return reply(res, 200, memoryCache.products);
     }
     if (req.url === '/api/products' && req.method === 'PUT') {
       if (req.headers['x-admin-password'] !== ADMIN_PASSWORD) return reply(res, 401, { error: 'Unauthorized' });
       const products = await body(req);
       if (!Array.isArray(products)) return reply(res, 400, { error: 'Products must be an array' });
       await supabase('store_settings?key=eq.products', { method: 'PATCH', body: JSON.stringify({ value: products }) });
+      memoryCache.products = products; // تحديث الـ Cache فوراً عند التعديل
       return reply(res, 200, products);
     }
+
+    // --- إعدادات الموقع مع تفعيل الـ Cache ---
     if (req.url === '/api/settings' && req.method === 'GET') {
+      if (memoryCache.settings) {
+        return reply(res, 200, memoryCache.settings); // إرجاع فوري بدون طلب Supabase
+      }
       const rows = await supabase('store_settings?key=eq.site_content&select=value');
-      return reply(res, 200, rows[0]?.value || {});
+      memoryCache.settings = rows[0]?.value || {};
+      return reply(res, 200, memoryCache.settings);
     }
     if (req.url === '/api/settings' && req.method === 'PUT') {
       if (req.headers['x-admin-password'] !== ADMIN_PASSWORD) return reply(res, 401, { error: 'Unauthorized' });
       const settings = await body(req);
       await supabase('store_settings?key=eq.site_content', { method: 'PATCH', body: JSON.stringify({ value: settings, updated_at: new Date().toISOString() }) });
+      memoryCache.settings = settings; // تحديث الـ Cache فوراً عند التعديل
       return reply(res, 200, settings);
     }
+
     if (req.url === '/api/orders' && req.method === 'GET') {
       if (req.headers['x-admin-password'] !== ADMIN_PASSWORD) return reply(res, 401, { error: 'Unauthorized' });
       const rows = await supabase('orders?select=id,payload,created_at&order=created_at.desc');
@@ -76,7 +102,7 @@ const server = http.createServer(async (req, res) => {
       if (!updatedRows?.some((row) => row.payload?.status === status)) {
         throw new Error('Supabase did not confirm the order status update');
       }
-      return reply(res, 200, { updated: true, status });
+      return reply(res, 200, { updated: updated, status });
     }
     if (orderMatch && req.method === 'DELETE') {
       if (req.headers['x-admin-password'] !== ADMIN_PASSWORD) return reply(res, 401, { error: 'Unauthorized' });
