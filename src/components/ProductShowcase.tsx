@@ -7,6 +7,7 @@ import type { Product } from '../data/products';
 import type { WishlistItem } from '../App';
 import { normalizeProductType, translateProductBadge, translateProductColor, translateProductType, useLanguage } from '../i18n';
 import { getProductColorHex } from '../utils/productColors';
+import { getOptimizedImageUrl } from '../lib/imageUrl';
 
 const getProductSizes = (product: Product) => product.sizes?.length
   ? product.sizes
@@ -27,6 +28,7 @@ type CatalogSelection = { kind: 'season' | 'type' | 'collection'; value: string;
 function ProductCard({ product, index, onAdd, liked, onToggleWishlist, selected, onSelect }: { product: Product; index: number; onAdd: (product: Product, color: string, size: string) => void; liked: boolean; onToggleWishlist: (product: Product, color: string, size: string) => void; selected: boolean; onSelect: (productId: number) => void }) {  const { language, t } = useLanguage();
   const cardRef = useRef<HTMLDivElement>(null);
   const cardInView = useInView(cardRef, { once: true, margin: '0px 0px -8% 0px' });
+  const cardVisible = useInView(cardRef, { margin: '0px 0px -8% 0px' });
   const sizes = getProductSizes(product);
   
   const colorOptions: Product['colors'] = product.colors?.length ? product.colors : product.images.map((item) => ({ name: item.color, image: item.img, available: true }));
@@ -49,10 +51,10 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist, selected,
   useEffect(() => setImageIndex(0), [selectedColor]);
   
   useEffect(() => {
-    if (colorImages.length < 2) return;
+    if (!cardVisible || colorImages.length < 2) return;
     const timer = window.setInterval(() => setImageIndex((current) => (current + 1) % colorImages.length), 3000);
     return () => window.clearInterval(timer);
-  }, [colorImages.length, selectedColor]);
+  }, [cardVisible, colorImages.length, selectedColor]);
 
   const colorImage = colorImages[imageIndex] || product.image;
   const discountPercentage = product.originalPrice > product.price
@@ -78,7 +80,7 @@ function ProductCard({ product, index, onAdd, liked, onToggleWishlist, selected,
   return (
     <motion.div ref={cardRef} dir={language === 'en' ? 'ltr' : 'rtl'} layout initial={{ opacity: 0, y: 22 }} animate={cardInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 22 }} transition={{ duration: 0.36, delay: Math.min(index * 0.035, 0.18) }} className={`group scroll-mt-32 ${selected ? 'ring-2 ring-ora-300 rounded-2xl p-1 shadow-lg shadow-ora-200/40' : ''}`}>
       <div role="button" tabIndex={0} onClick={() => onSelect(product.id)} onKeyDown={(event) => event.key === 'Enter' && onSelect(product.id)} aria-label={`تفاصيل ${product.nameAr}`} className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-ora-100 mb-4 cursor-pointer">
-        <img src={colorImage} alt={`${language === 'ar' ? product.nameAr : product.name} - ${activeColor?.name || ''}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
+        <img src={getOptimizedImageUrl(colorImage, 720)} alt={`${language === 'ar' ? product.nameAr : product.name} - ${activeColor?.name || ''}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" decoding="async" />
         <span className="absolute top-3 left-3 px-3 py-1 bg-white/90 text-[10px] font-bold rounded-full">{product.originalPrice > product.price && !product.badge ? t('salesLabel') : translateProductBadge(product.badge || 'ORA', language)}</span>
         {product.season && <span className="absolute top-3 right-14 px-3 py-1 bg-white/90 text-[10px] font-bold rounded-full">{t(product.season)}</span>}
         <span className={`absolute bottom-3 left-3 px-3 py-1 text-[10px] font-bold rounded-full ${productAvailable ? 'availability-available' : 'availability-unavailable'}`}>
@@ -413,8 +415,8 @@ function ProductDetails({ product, liked, onClose, onAdd, onToggleWishlist }: {
       <motion.div role="dialog" aria-modal="true" aria-label={`${t('detailsLabel')}: ${language === 'ar' ? product.nameAr : product.name}`} dir={language === 'en' ? 'ltr' : 'rtl'} className="relative grid max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-[#faf8f5] shadow-2xl md:grid-cols-2" initial={{ y: 18, scale: 0.98 }} animate={{ y: 0, scale: 1 }} exit={{ y: 12, scale: 0.98 }}>
         <button type="button" onClick={onClose} className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 shadow" aria-label={t('close')}><span aria-hidden="true">×</span></button>
         <div className="bg-ora-100">
-          <img src={images[imageIndex] || product.image} alt={language === 'ar' ? product.nameAr : product.name} className="aspect-[4/4.4] w-full object-cover md:h-full md:aspect-auto" />
-          {images.length > 1 && <div className="flex gap-2 overflow-x-auto p-3">{images.map((image, index) => <button type="button" key={`${image}-${index}`} onClick={() => setImageIndex(index)} className={`h-16 w-14 shrink-0 overflow-hidden rounded-md border-2 ${imageIndex === index ? 'border-ora-600' : 'border-transparent'}`}><img src={image} alt="" className="h-full w-full object-cover" /></button>)}</div>}
+          <img src={getOptimizedImageUrl(images[imageIndex] || product.image, 960)} alt={language === 'ar' ? product.nameAr : product.name} className="aspect-[4/4.4] w-full object-cover md:h-full md:aspect-auto" decoding="async" />
+          {images.length > 1 && <div className="flex gap-2 overflow-x-auto p-3">{images.map((image, index) => <button type="button" key={`${image}-${index}`} onClick={() => setImageIndex(index)} className={`h-16 w-14 shrink-0 overflow-hidden rounded-md border-2 ${imageIndex === index ? 'border-ora-600' : 'border-transparent'}`}><img src={getOptimizedImageUrl(image, 160)} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" /></button>)}</div>}
         </div>
         <div className="flex flex-col p-5 sm:p-8">
           <span className="text-xs font-semibold text-ora-700">{translateProductBadge(product.badge || 'ORA', language)}</span>

@@ -5,6 +5,7 @@ import { Search, ShoppingBag, Heart, X, ArrowRight } from 'lucide-react';
 import type { Product as StoreProduct } from '../data/products';
 import type { WishlistItem } from '../App';
 import { translateProductColor, useLanguage } from '../i18n';
+import { getOptimizedImageUrl } from '../lib/imageUrl';
 
 const navLinks = [
   { key: 'collections', href: '#collections' },
@@ -180,10 +181,12 @@ export default function Navbar({ products, onCartOpen, cartCount, wishlist, onTo
                           }}
                           className="flex items-center gap-3 p-2 rounded-xl hover:bg-ora-100/60 transition-colors duration-200 group"
                         >
-                          <img 
-                            src={item.image} 
-                            alt={item.name} 
+                          <img
+                            src={getOptimizedImageUrl(item.image, 192)}
+                            alt={item.name}
                             className="w-12 h-16 object-cover rounded-lg shadow-sm border border-charcoal-100"
+                            loading="lazy"
+                            decoding="async"
                           />
                           <div className="flex-1 text-right" dir={language === 'en' ? 'ltr' : 'rtl'}>
                             <div className="text-sm font-bold text-charcoal-900 group-hover:text-ora-700 transition-colors">
@@ -212,7 +215,7 @@ export default function Navbar({ products, onCartOpen, cartCount, wishlist, onTo
               <AnimatePresence>
                 {wishlistOpen && <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} className="fixed top-20 inset-x-3 mx-auto w-auto max-w-sm max-h-[calc(100dvh-6rem)] overflow-y-auto lg:top-24 lg:left-auto lg:right-4 lg:mx-0 lg:w-80 lg:max-w-none rounded-xl bg-white p-3 text-[#1e1f22] shadow-xl border border-charcoal-100 z-[70]" dir={language === 'en' ? 'ltr' : 'rtl'}>
                   <h3 className="font-bold text-[#1e1f22] mb-2">{t('wishlist')}</h3>
-                  {!wishlist.length ? <p className="text-sm text-[#60646c] py-5 text-center">{t('emptyWishlist')}</p> : <div className="max-h-72 overflow-y-auto">{wishlist.map((product, index) => <div key={product.id}><div className="flex items-center gap-2 rounded-xl p-1.5 text-[#1e1f22] hover:bg-ora-100"><img src={product.image} alt={product.name} className="w-10 h-12 rounded-lg object-cover" /><div className="min-w-0 flex-1"><p className="font-bold text-sm text-[#1e1f22] truncate">{language === 'ar' ? product.nameAr : product.name}</p><p className="text-xs text-[#60646c]">{t('color')}: {product.selectedColor || product.colorName}</p><p className="text-xs text-[#60646c]">{t('size')}: {product.selectedSize || '—'}</p><p className="text-xs font-bold text-[#1e1f22] mt-1">{t('price')}: ₪{product.price}</p></div><button onClick={() => onToggleWishlist(product, product.selectedColor || product.colorName, product.selectedSize || '')} className="p-2 text-red-500 hover:scale-110 transition-transform" aria-label={t('removeWishlist')}><Heart size={16} className="fill-current" /></button></div>{index < wishlist.length - 1 && <div className="h-px w-full my-3 bg-[#a98a6a]" aria-hidden="true" />}</div>)}</div>}
+                  {!wishlist.length ? <p className="text-sm text-[#60646c] py-5 text-center">{t('emptyWishlist')}</p> : <div className="max-h-72 overflow-y-auto">{wishlist.map((product, index) => <div key={product.id}><div className="flex items-center gap-2 rounded-xl p-1.5 text-[#1e1f22] hover:bg-ora-100"><img src={getOptimizedImageUrl(product.image, 160)} alt={product.name} className="w-10 h-12 rounded-lg object-cover" loading="lazy" decoding="async" /><div className="min-w-0 flex-1"><p className="font-bold text-sm text-[#1e1f22] truncate">{language === 'ar' ? product.nameAr : product.name}</p><p className="text-xs text-[#60646c]">{t('color')}: {product.selectedColor || product.colorName}</p><p className="text-xs text-[#60646c]">{t('size')}: {product.selectedSize || '—'}</p><p className="text-xs font-bold text-[#1e1f22] mt-1">{t('price')}: ₪{product.price}</p></div><button onClick={() => onToggleWishlist(product, product.selectedColor || product.colorName, product.selectedSize || '')} className="p-2 text-red-500 hover:scale-110 transition-transform" aria-label={t('removeWishlist')}><Heart size={16} className="fill-current" /></button></div>{index < wishlist.length - 1 && <div className="h-px w-full my-3 bg-[#a98a6a]" aria-hidden="true" />}</div>)}</div>}
                 </motion.div>}
               </AnimatePresence>
             </div>

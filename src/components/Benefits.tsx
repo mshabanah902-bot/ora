@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 import type { SiteContent } from '../data/siteContent';
 import { useLanguage } from '../i18n';
+import { getOptimizedImageUrl } from '../lib/imageUrl';
 
 export default function Features({ content }: { content: SiteContent['story'] }) {
   const { ref, inView } = useScrollReveal(0.05);
@@ -18,9 +19,11 @@ export default function Features({ content }: { content: SiteContent['story'] })
           <div className="relative flex justify-center lg:justify-start">
             <div className="relative w-80 sm:w-96 aspect-[3/4] rounded-3xl overflow-hidden shadow-xl">
               <img 
-                src={content.image}
+                src={getOptimizedImageUrl(content.image, 720)}
                 alt="ORA Fashion detail" 
                 className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
               />
             </div>
             
@@ -32,9 +35,11 @@ export default function Features({ content }: { content: SiteContent['story'] })
               className="absolute -bottom-10 right-4 lg:-right-8 w-44 sm:w-52 aspect-[3/4] rounded-2xl overflow-hidden shadow-2xl border-4 border-[#faf8f5]"
             >
               <img 
-                src={content.secondaryImage}
+                src={getOptimizedImageUrl(content.secondaryImage, 420)}
                 alt="ORA Studio lookbook" 
                 className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
               />
             </motion.div>
           </div>

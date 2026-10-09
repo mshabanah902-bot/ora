@@ -3,6 +3,7 @@ import { useScrollReveal } from '../hooks/useScrollReveal';
 import { ArrowUpRight } from 'lucide-react';
 import type { SiteContent } from '../data/siteContent';
 import { useLanguage } from '../i18n';
+import { getOptimizedImageUrl } from '../lib/imageUrl';
 
 export default function Collections({ collections = [], onSelectCollection }: { collections?: SiteContent['collections']; onSelectCollection?: (title: string) => void }) {
   const { ref, inView } = useScrollReveal(0.1);
@@ -46,10 +47,11 @@ export default function Collections({ collections = [], onSelectCollection }: { 
             >
               {/* Image */}
               <img
-                src={col.image}
+                src={getOptimizedImageUrl(col.image, 960)}
                 alt={`${col.title} ${t('collections')}`}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 loading="lazy"
+                decoding="async"
               />
 
               {/* طبقة تظليل ممتدة للكرت كاملاً لحماية النصوص البيضاء */}

@@ -14,6 +14,7 @@ import { loadProducts, loadSiteContent, saveProducts as persistProducts, saveSit
 import { defaultSiteContent, type SiteContent } from './data/siteContent';
 
 export type WishlistItem = Product & { selectedColor: string; selectedSize: string };
+const MAX_REFRESH_RETRIES = 5;
 
 const normalizeProducts = (items: unknown): Product[] => {
   if (!Array.isArray(items)) return [];
@@ -134,6 +135,7 @@ export default function App() {
       }
 
       if (productsResult.status === 'rejected' || contentResult.status === 'rejected') {
+        if (retryAttempt >= MAX_REFRESH_RETRIES) return;
         retryAttempt += 1;
         const delay = Math.min(1000 * 2 ** (retryAttempt - 1), 30000);
         retryTimer = setTimeout(() => void refresh(), delay);

@@ -3,6 +3,7 @@ import { ArrowRight, Play } from 'lucide-react';
 
 import type { SiteContent } from '../data/siteContent';
 import { useLanguage } from '../i18n';
+import { getOptimizedImageUrl } from '../lib/imageUrl';
 
 export default function Hero({ content }: { content: SiteContent['hero'] }) {
   const { language, t } = useLanguage();
@@ -142,10 +143,11 @@ export default function Hero({ content }: { content: SiteContent['hero'] }) {
             >
               <div className="relative w-72 sm:w-80 lg:w-96 aspect-[3/4] rounded-3xl overflow-hidden shadow-2xl shadow-charcoal-900/20">
                 <img
-                  src={content.image}
+                  src={getOptimizedImageUrl(content.image, 960)}
                   alt="ORA Fashion - Premium contemporary streetwear"
                   className="w-full h-full object-cover"
                   loading="eager"
+                  decoding="async"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-charcoal-950/30 to-transparent" />
               </div>

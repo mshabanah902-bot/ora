@@ -7,6 +7,7 @@ import type { Product } from '../data/products';
 import type { SiteContent } from '../data/siteContent';
 import { normalizeProductType, translateProductColor, translateProductType, useLanguage } from '../i18n';
 import { getProductColorHex } from '../utils/productColors';
+import { getOptimizedImageUrl } from '../lib/imageUrl';
 
 const seasons = [
   { id: 'winter', titleKey: 'winter', subtitleKey: 'winterSubtitle', Icon: Snowflake },
@@ -54,7 +55,7 @@ export function SeasonalSections({ products, copy }: { products: Product[]; copy
                 transition={{ delay: index * 0.08 }}
                 className={`category-tile group ${image ? '' : 'seasonal-tile'}`}
               >
-                {image && <img src={image} alt={t('seasonPieceAlt').replace('{season}', cardTitle)} className="category-tile-image" loading="lazy" />}
+                {image && <img src={getOptimizedImageUrl(image, 560)} alt={t('seasonPieceAlt').replace('{season}', cardTitle)} className="category-tile-image" loading="lazy" decoding="async" />}
                 <span className="category-tile-blur" />
                 <span className="category-tile-icon"><Icon size={24} strokeWidth={1.7} /></span>
                 <span className="category-tile-copy seasonal-word-spacing">
@@ -101,7 +102,7 @@ export function ProductTypeSections({ products, copy }: { products: Product[]; c
             const image = items[0]?.image || products[index % Math.max(products.length, 1)]?.image;
             return (
               <motion.button key={value} type="button" onClick={() => document.dispatchEvent(new CustomEvent('ora:select-product-type', { detail: value }))} initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.35, delay: index * 0.05 }} className="category-tile group" dir="auto">
-                {image && <img src={image} alt="" className="category-tile-image" loading="lazy" />}
+                {image && <img src={getOptimizedImageUrl(image, 560)} alt="" className="category-tile-image" loading="lazy" decoding="async" />}
                 <span className="category-tile-blur" />
                 <span className="category-tile-copy seasonal-word-spacing">
                   <span className="category-tile-title">{label}</span>
@@ -169,7 +170,7 @@ function OfferProductCard({ product, liked, onSelect, onAdd, onToggleWishlist }:
     <article className="offer-item" dir={language === 'en' ? 'ltr' : 'rtl'}>
       <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-white/10">
         <button type="button" onClick={() => onSelect(product.id)} className="h-full w-full" aria-label={`${t('detailsLabel')}: ${language === 'ar' ? product.nameAr : product.name}`}>
-          <img src={currentImage} alt={language === 'ar' ? product.nameAr : product.name} className="h-full w-full object-cover transition-transform duration-500 hover:scale-105" loading="lazy" />
+          <img src={getOptimizedImageUrl(currentImage, 560)} alt={language === 'ar' ? product.nameAr : product.name} className="h-full w-full object-cover transition-transform duration-500 hover:scale-105" loading="lazy" decoding="async" />
         </button>
         <span className="absolute right-2 top-2 rounded-full bg-red-700 px-2.5 py-1 text-[10px] font-bold">{language === 'en' ? `${discount}% ${t('discount')}` : `${t('discount')} ${discount}%`}</span>
         <button type="button" onClick={() => onToggleWishlist(product, selectedColor, selectedSize)} className={`offer-favorite absolute left-2 top-2 flex h-11 w-11 items-center justify-center rounded-full ${liked ? 'text-red-300' : ''}`} aria-label={liked ? t('removeWishlist') : t('wishlist')}>

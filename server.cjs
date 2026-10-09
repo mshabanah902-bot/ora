@@ -4,16 +4,42 @@ const PORT = process.env.PORT || 4173;
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'ora123';
+const PUBLIC_CACHE_TTL_MS = 60_000;
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required');
 
-// --- نظام الذاكرة المؤقتة (Memory Cache) لإيقاف استهلاك Egress نهائياً ---
+// --- Short-lived cache for public catalog data ---
 const memoryCache = {
-  products: null,
-  settings: null,
+  products: { value: null, expiresAt: 0, pending: null, revision: 0 },
+  settings: { value: null, expiresAt: 0, pending: null, revision: 0 },
   clear() {
-    this.products = null;
-    this.settings = null;
+    this.products = { value: null, expiresAt: 0, pending: null, revision: 0 };
+    this.settings = { value: null, expiresAt: 0, pending: null, revision: 0 };
   }
+};
+function getCachedValue(entry) {
+  return entry.expiresAt > Date.now() ? entry.value : null;
+}
+function setCachedValue(entry, value) {
+  entry.value = value;
+  entry.expiresAt = Date.now() + PUBLIC_CACHE_TTL_MS;
+  entry.revision += 1;
+}
+function getOrLoadCachedValue(entry, load) {
+  const cached = getCachedValue(entry);
+  if (cached !== null) return Promise.resolve(cached);
+  if (entry.pending) return entry.pending;
+
+  const revisionAtStart = entry.revision;
+  entry.pending = load().then((value) => {
+    if (revisionAtStart === entry.revision) setCachedValue(entry, value);
+    return entry.value;
+  }).finally(() => {
+    entry.pending = null;
+  });
+  return entry.pending;
+}
+const publicCacheHeaders = {
+  'Cache-Control': 'public, max-age=0, s-maxage=60, stale-while-revalidate=300',
 };
 
 function body(req) {
@@ -47,36 +73,34 @@ const server = http.createServer(async (req, res) => {
 
     // --- المنتجات مع تفعيل الـ Cache ---
     if (req.url === '/api/products' && req.method === 'GET') {
-      if (memoryCache.products) {
-        return reply(res, 200, memoryCache.products); // إرجاع فوري بدون طلب Supabase
-      }
-      const rows = await supabase('store_settings?key=eq.products&select=value');
-      memoryCache.products = rows[0]?.value || [];
-      return reply(res, 200, memoryCache.products);
+      const products = await getOrLoadCachedValue(memoryCache.products, async () => {
+        const rows = await supabase('store_settings?key=eq.products&select=value');
+        return rows[0]?.value || [];
+      });
+      return reply(res, 200, products, publicCacheHeaders);
     }
     if (req.url === '/api/products' && req.method === 'PUT') {
       if (req.headers['x-admin-password'] !== ADMIN_PASSWORD) return reply(res, 401, { error: 'Unauthorized' });
       const products = await body(req);
       if (!Array.isArray(products)) return reply(res, 400, { error: 'Products must be an array' });
       await supabase('store_settings?key=eq.products', { method: 'PATCH', body: JSON.stringify({ value: products }) });
-      memoryCache.products = products; // تحديث الـ Cache فوراً عند التعديل
+      setCachedValue(memoryCache.products, products);
       return reply(res, 200, products);
     }
 
     // --- إعدادات الموقع مع تفعيل الـ Cache ---
     if (req.url === '/api/settings' && req.method === 'GET') {
-      if (memoryCache.settings) {
-        return reply(res, 200, memoryCache.settings); // إرجاع فوري بدون طلب Supabase
-      }
-      const rows = await supabase('store_settings?key=eq.site_content&select=value');
-      memoryCache.settings = rows[0]?.value || {};
-      return reply(res, 200, memoryCache.settings);
+      const settings = await getOrLoadCachedValue(memoryCache.settings, async () => {
+        const rows = await supabase('store_settings?key=eq.site_content&select=value');
+        return rows[0]?.value || {};
+      });
+      return reply(res, 200, settings, publicCacheHeaders);
     }
     if (req.url === '/api/settings' && req.method === 'PUT') {
       if (req.headers['x-admin-password'] !== ADMIN_PASSWORD) return reply(res, 401, { error: 'Unauthorized' });
       const settings = await body(req);
       await supabase('store_settings?key=eq.site_content', { method: 'PATCH', body: JSON.stringify({ value: settings, updated_at: new Date().toISOString() }) });
-      memoryCache.settings = settings; // تحديث الـ Cache فوراً عند التعديل
+      setCachedValue(memoryCache.settings, settings);
       return reply(res, 200, settings);
     }
 
@@ -121,5 +145,8 @@ const server = http.createServer(async (req, res) => {
     return reply(res, 500, { error: 'Server error' });
   }
 });
-function reply(res, status, data) { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(data)); }
+function reply(res, status, data, headers = {}) {
+  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...headers });
+  res.end(JSON.stringify(data));
+}
 server.listen(PORT, () => console.log(`ORA API listening on port ${PORT} (Supabase)`));
